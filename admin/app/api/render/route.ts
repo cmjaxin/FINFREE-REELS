@@ -76,66 +76,68 @@ export async function POST(request: NextRequest) {
     // Build end card with officer info
     const endCardClips: any[] = []
 
-    // Background
-    if (branding?.end_card_template === 'split') {
+    // Officer name
+    endCardClips.push({
+      type: 'title',
+      text: user?.full_name || 'Officer',
+      style: 'bold',
+      color: branding.end_card_text_color,
+      size: 'large',
+      position: 'top-left',
+      length: branding.end_card_hold_seconds,
+    })
+
+    // Title and NMLS
+    if (user?.title_on_end_card || user?.nmls_number) {
       endCardClips.push({
         type: 'title',
-        text: user?.full_name || 'Officer',
-        style: 'bold',
-        color: branding?.end_card_text_color || '#FFFFFF',
-        size: 'large',
+        text: `${user?.title_on_end_card || ''} ${user?.nmls_number ? `• NMLS #${user.nmls_number}` : ''}`.trim(),
+        style: 'normal',
+        color: branding.end_card_text_color,
+        size: 'small',
         position: 'top-left',
-        length: branding?.end_card_hold_seconds || 3,
-      })
-
-      if (user?.title_on_end_card) {
-        endCardClips.push({
-          type: 'title',
-          text: user.title_on_end_card,
-          style: 'normal',
-          color: branding?.end_card_text_color || '#FFFFFF',
-          size: 'small',
-          position: 'top-left',
-          offsetY: 40,
-          length: branding?.end_card_hold_seconds || 3,
-        })
-      }
-
-      if (user?.direct_phone) {
-        endCardClips.push({
-          type: 'title',
-          text: user.direct_phone,
-          style: 'normal',
-          color: branding?.disclaimer_text_color || '#999999',
-          size: 'small',
-          position: 'bottom-left',
-          length: branding?.end_card_hold_seconds || 3,
-        })
-      }
-
-      if (user?.work_email) {
-        endCardClips.push({
-          type: 'title',
-          text: user.work_email,
-          style: 'normal',
-          color: branding?.disclaimer_text_color || '#999999',
-          size: 'small',
-          position: 'bottom-left',
-          offsetY: -20,
-          length: branding?.end_card_hold_seconds || 3,
-        })
-      }
-    } else if (branding?.end_card_template === 'centered') {
-      endCardClips.push({
-        type: 'title',
-        text: user?.full_name || 'Officer',
-        style: 'bold',
-        color: branding?.end_card_text_color || '#FFFFFF',
-        size: 'large',
-        position: 'center',
-        length: branding?.end_card_hold_seconds || 3,
+        offsetY: 40,
+        length: branding.end_card_hold_seconds,
       })
     }
+
+    // Phone
+    if (user?.direct_phone) {
+      endCardClips.push({
+        type: 'title',
+        text: user.direct_phone,
+        style: 'normal',
+        color: branding.disclaimer_text_color,
+        size: 'small',
+        position: 'bottom-left',
+        length: branding.end_card_hold_seconds,
+      })
+    }
+
+    // Email
+    if (user?.work_email) {
+      endCardClips.push({
+        type: 'title',
+        text: user.work_email,
+        style: 'normal',
+        color: branding.disclaimer_text_color,
+        size: 'small',
+        position: 'bottom-left',
+        offsetY: -20,
+        length: branding.end_card_hold_seconds,
+      })
+    }
+
+    // Disclaimer
+    endCardClips.push({
+      type: 'title',
+      text: branding.disclaimer_text,
+      style: 'normal',
+      color: branding.disclaimer_text_color,
+      size: 'xsmall',
+      position: 'bottom-center',
+      length: branding.end_card_hold_seconds,
+    })
 
     // Add end card track
     if (endCardClips.length > 0) {
