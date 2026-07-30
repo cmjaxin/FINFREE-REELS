@@ -76,6 +76,19 @@ export async function POST(request: NextRequest) {
     // Build end card with officer info
     const endCardClips: any[] = []
 
+    // Logo at top
+    endCardClips.push({
+      type: 'image',
+      asset: {
+        type: 'image',
+        src: branding.logo_url,
+      },
+      position: 'top-center',
+      scale: 0.3,
+      offsetY: 20,
+      length: branding.end_card_hold_seconds,
+    })
+
     // Officer name
     endCardClips.push({
       type: 'title',
