@@ -2,7 +2,7 @@
   "name": "neo-reels-officer",
   "version": "0.0.1",
   "description": "NEO Reels officer mobile app",
-  "main": "node_modules/expo/AppEntry.js",
+  "main": "index.js",
   "scripts": {
     "start": "expo start",
     "android": "expo start --android",
