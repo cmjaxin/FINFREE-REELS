@@ -53,9 +53,8 @@ export default function DashboardLayout({
         <div className="p-6">
           {/* Company Block */}
           <div className="mb-8">
-            <img src="/logo.svg" alt="Splice" className="w-12 h-12 mb-3"/>
-            <h2 className="font-bold text-text-light text-lg">Splice</h2>
-            <p className="text-xs text-primary mt-1">PROFESSIONAL VIDEOS</p>
+            <img src="/splice-logo.png" alt="Splice" className="w-16 h-auto mb-3"/>
+            <p className="text-xs text-primary">PROFESSIONAL VIDEOS</p>
           </div>
 
           {/* Nav */}
@@ -109,8 +108,7 @@ export default function DashboardLayout({
         {/* Top Chrome */}
         <header className="h-chrome bg-gradient-to-r from-gray-900 to-gray-800 border-b border-gray-800 sticky top-0 z-40 flex items-center px-8">
           <div className="flex items-center gap-3">
-            <img src="/logo.svg" alt="Splice" className="w-8 h-8"/>
-            <span className="text-lg font-bold bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent">Splice</span>
+            <img src="/splice-logo.png" alt="Splice" className="h-8 w-auto"/>
           </div>
           <div className="ml-auto text-sm text-gray-400">
             ADMIN
