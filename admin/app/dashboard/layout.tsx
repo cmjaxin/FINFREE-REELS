@@ -56,8 +56,8 @@ export default function DashboardLayout({
             <div className="flex items-center gap-2 mb-1">
               <div className="w-2 h-2 rounded-full bg-neo-cyan" />
             </div>
-            <h2 className="font-bold text-white text-sm">FinFree Reels</h2>
-            <p className="text-xs text-neo-cyan">YOUR VIDEO PLATFORM</p>
+            <h2 className="font-bold text-white text-sm">Splice</h2>
+            <p className="text-xs text-neo-cyan">PROFESSIONAL VIDEOS</p>
           </div>
 
           {/* Nav */}
@@ -110,7 +110,7 @@ export default function DashboardLayout({
       <main className="flex-1 overflow-auto">
         {/* Top Chrome */}
         <header className="h-chrome bg-neo-navy text-white sticky top-0 z-40 flex items-center px-8 border-b border-neo-navy-hairline">
-          <h1 className="font-bold">FinFree Reels</h1>
+          <h1 className="font-bold">Splice</h1>
           <div className="ml-auto text-sm text-neo-cyan">
             ADMIN · COLIN JENSON
           </div>
