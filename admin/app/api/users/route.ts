@@ -32,7 +32,14 @@ export async function GET() {
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json()
-    const { email, fullName, role = 'loan_officer' } = body
+    const {
+      email,
+      fullName,
+      role = 'loan_officer',
+      direct_phone,
+      title_on_end_card,
+      nmls_number,
+    } = body
 
     if (!email || !fullName) {
       return NextResponse.json({ error: 'Email and name required' }, { status: 400 })
@@ -55,7 +62,7 @@ export async function POST(request: NextRequest) {
 
     if (authError) throw new Error(`Auth creation failed: ${authError.message}`)
 
-    // Create user record in database
+    // Create user record in database with all contact info
     const supabase = getSupabaseClient()
     const { data, error } = await supabase
       .from('users')
@@ -66,6 +73,9 @@ export async function POST(request: NextRequest) {
           role,
           status: 'active',
           auth_id: authData?.user?.id,
+          direct_phone: direct_phone || null,
+          title_on_end_card: title_on_end_card || null,
+          nmls_number: nmls_number || null,
         },
       ])
       .select()

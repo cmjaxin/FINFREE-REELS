@@ -21,12 +21,15 @@ interface User {
 export default function UsersPage() {
   const [users, setUsers] = useState<User[]>([])
   const [loading, setLoading] = useState(true)
-  const [newUserEmail, setNewUserEmail] = useState('')
-  const [newUserName, setNewUserName] = useState('')
+  const [showForm, setShowForm] = useState(false)
   const [creatingUser, setCreatingUser] = useState(false)
-  const [selectedUser, setSelectedUser] = useState<User | null>(null)
-  const [editingUser, setEditingUser] = useState<User | null>(null)
-  const [savingUser, setSavingUser] = useState(false)
+  const [formData, setFormData] = useState({
+    fullName: '',
+    email: '',
+    directPhone: '',
+    titleOnEndCard: '',
+    nmslNumber: '',
+  })
 
   useEffect(() => {
     fetchUsers()
@@ -47,53 +50,36 @@ export default function UsersPage() {
 
   const handleCreateUser = async (e: React.FormEvent) => {
     e.preventDefault()
-    if (!newUserEmail || !newUserName) return
+    if (!formData.email || !formData.fullName) return
 
     setCreatingUser(true)
     try {
       const res = await fetch('/api/users', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email: newUserEmail, fullName: newUserName }),
+        body: JSON.stringify({
+          email: formData.email,
+          fullName: formData.fullName,
+          direct_phone: formData.directPhone,
+          title_on_end_card: formData.titleOnEndCard,
+          nmls_number: formData.nmslNumber,
+        }),
       })
       if (res.ok) {
-        setNewUserEmail('')
-        setNewUserName('')
+        setFormData({
+          fullName: '',
+          email: '',
+          directPhone: '',
+          titleOnEndCard: '',
+          nmslNumber: '',
+        })
+        setShowForm(false)
         fetchUsers()
       }
     } catch (error) {
       console.error('Error creating user:', error)
     } finally {
       setCreatingUser(false)
-    }
-  }
-
-  const handleSaveUser = async (e: React.FormEvent) => {
-    e.preventDefault()
-    if (!editingUser) return
-
-    setSavingUser(true)
-    try {
-      const res = await fetch(`/api/users/${editingUser.id}`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          title_on_end_card: editingUser.title_on_end_card,
-          direct_phone: editingUser.direct_phone,
-          work_email: editingUser.work_email,
-          nmls_number: editingUser.nmls_number,
-          headshot_url: editingUser.headshot_url,
-        }),
-      })
-      if (res.ok) {
-        setSelectedUser(null)
-        setEditingUser(null)
-        fetchUsers()
-      }
-    } catch (error) {
-      console.error('Error saving user:', error)
-    } finally {
-      setSavingUser(false)
     }
   }
 
@@ -106,37 +92,95 @@ export default function UsersPage() {
 
   return (
     <div>
-      <div className="mb-8">
-        <p className="font-mono text-gray-400 mb-2">{users.length} ACCOUNTS</p>
-        <h2 className="text-page-title text-text-light mb-4">Users</h2>
-
-        {/* Create User Form */}
-        <form onSubmit={handleCreateUser} className="flex gap-2 mb-4">
-          <input
-            type="email"
-            placeholder="Email"
-            value={newUserEmail}
-            onChange={(e) => setNewUserEmail(e.target.value)}
-            className="flex-1 px-3 py-2 bg-gray-800 border border-gray-700 text-text-light rounded-lg focus:outline-none focus:border-primary"
-            disabled={creatingUser}
-          />
-          <input
-            type="text"
-            placeholder="Full name"
-            value={newUserName}
-            onChange={(e) => setNewUserName(e.target.value)}
-            className="flex-1 px-3 py-2 bg-gray-800 border border-gray-700 text-text-light rounded-lg focus:outline-none focus:border-primary"
-            disabled={creatingUser}
-          />
-          <button
-            type="submit"
-            disabled={creatingUser || !newUserEmail || !newUserName}
-            className="px-4 py-2 bg-gradient-to-r from-primary to-accent hover:from-primary-dark hover:to-accent-light text-white rounded-lg transition font-medium disabled:opacity-50"
-          >
-            {creatingUser ? 'Adding...' : 'Add user'}
-          </button>
-        </form>
+      <div className="mb-8 flex items-end justify-between">
+        <div>
+          <p className="font-mono text-gray-400 mb-2">{users.length} ACCOUNTS</p>
+          <h2 className="text-page-title text-text-light mb-4">Users</h2>
+        </div>
+        <button
+          onClick={() => setShowForm(!showForm)}
+          className="px-4 py-2 bg-gradient-to-r from-primary to-accent hover:from-primary-dark hover:to-accent-light text-white rounded-lg transition font-medium"
+        >
+          {showForm ? 'Cancel' : 'Add officer'}
+        </button>
       </div>
+
+      {showForm && (
+        <div className="bg-gray-900 rounded-lg border border-gray-800 p-6 mb-8">
+          <form onSubmit={handleCreateUser} className="space-y-4">
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm text-gray-400 mb-2">Full name *</label>
+                <input
+                  type="text"
+                  placeholder="e.g., Matt Smith"
+                  value={formData.fullName}
+                  onChange={(e) => setFormData({ ...formData, fullName: e.target.value })}
+                  className="w-full px-3 py-2 bg-gray-800 border border-gray-700 text-text-light rounded-lg focus:outline-none focus:border-primary"
+                  required
+                />
+              </div>
+              <div>
+                <label className="block text-sm text-gray-400 mb-2">Email *</label>
+                <input
+                  type="email"
+                  placeholder="e.g., matt@company.com"
+                  value={formData.email}
+                  onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                  className="w-full px-3 py-2 bg-gray-800 border border-gray-700 text-text-light rounded-lg focus:outline-none focus:border-primary"
+                  required
+                />
+              </div>
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm text-gray-400 mb-2">Phone</label>
+                <input
+                  type="tel"
+                  placeholder="e.g., (555) 123-4567"
+                  value={formData.directPhone}
+                  onChange={(e) => setFormData({ ...formData, directPhone: e.target.value })}
+                  className="w-full px-3 py-2 bg-gray-800 border border-gray-700 text-text-light rounded-lg focus:outline-none focus:border-primary"
+                />
+              </div>
+              <div>
+                <label className="block text-sm text-gray-400 mb-2">NMLS Number</label>
+                <input
+                  type="text"
+                  placeholder="e.g., 123456"
+                  value={formData.nmslNumber}
+                  onChange={(e) => setFormData({ ...formData, nmslNumber: e.target.value })}
+                  className="w-full px-3 py-2 bg-gray-800 border border-gray-700 text-text-light rounded-lg focus:outline-none focus:border-primary"
+                />
+              </div>
+            </div>
+
+            <div>
+              <label className="block text-sm text-gray-400 mb-2">Title</label>
+              <input
+                type="text"
+                placeholder="e.g., Senior Loan Officer"
+                value={formData.titleOnEndCard}
+                onChange={(e) => setFormData({ ...formData, titleOnEndCard: e.target.value })}
+                className="w-full px-3 py-2 bg-gray-800 border border-gray-700 text-text-light rounded-lg focus:outline-none focus:border-primary"
+              />
+            </div>
+
+            <p className="text-xs text-gray-500">
+              * Required. Officer will receive an invite email to set their password. All fields shown on end card.
+            </p>
+
+            <button
+              type="submit"
+              disabled={creatingUser}
+              className="w-full px-4 py-2 bg-gradient-to-r from-primary to-accent hover:from-primary-dark hover:to-accent-light text-white rounded-lg transition font-medium disabled:opacity-50"
+            >
+              {creatingUser ? 'Creating...' : 'Create officer'}
+            </button>
+          </form>
+        </div>
+      )}
 
       {/* Users Table */}
       <div className="bg-gray-900 rounded-lg border border-gray-800 overflow-hidden">
@@ -152,26 +196,49 @@ export default function UsersPage() {
             <div className="p-8 text-center text-gray-400">No users yet. Add one above!</div>
           ) : (
             users.map((user) => (
-              <div
-                key={user.id}
-                className="p-4 grid grid-cols-[2.3fr_1fr_0.8fr_1fr_0.9fr] gap-4 items-center hover:bg-gray-800 transition cursor-pointer"
-              >
-                <div className="flex items-center gap-3">
-                  <div className="w-8 h-8 rounded-full bg-gradient-to-br from-primary to-accent flex items-center justify-center text-white text-xs font-bold">
-                    {initials(user.full_name)}
+              <div key={user.id} className="p-4 hover:bg-gray-800 transition">
+                <div className="flex items-start justify-between mb-3">
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-full bg-gradient-to-br from-primary to-accent flex items-center justify-center text-white text-xs font-bold">
+                      {initials(user.full_name)}
+                    </div>
+                    <div>
+                      <p className="font-medium text-text-light">{user.full_name}</p>
+                      <p className="text-xs text-gray-400">{user.email}</p>
+                    </div>
                   </div>
+                  <span className="px-2 py-1 bg-primary/20 text-primary text-xs font-mono font-bold rounded w-fit">
+                    {user.status.toUpperCase()}
+                  </span>
+                </div>
+
+                {/* Contact info */}
+                <div className="grid grid-cols-4 gap-4 text-sm ml-13 pl-3 border-l border-gray-700">
+                  {user.direct_phone && (
+                    <div>
+                      <p className="text-gray-500 text-xs mb-1">Phone</p>
+                      <p className="text-gray-300">{user.direct_phone}</p>
+                    </div>
+                  )}
+                  {user.nmls_number && (
+                    <div>
+                      <p className="text-gray-500 text-xs mb-1">NMLS</p>
+                      <p className="text-gray-300">{user.nmls_number}</p>
+                    </div>
+                  )}
+                  {user.title_on_end_card && (
+                    <div>
+                      <p className="text-gray-500 text-xs mb-1">Title</p>
+                      <p className="text-gray-300">{user.title_on_end_card}</p>
+                    </div>
+                  )}
                   <div>
-                    <p className="font-medium text-text-light">{user.full_name}</p>
-                    <p className="text-xs text-gray-400">{user.email}</p>
+                    <p className="text-gray-500 text-xs mb-1">Created</p>
+                    <p className="text-gray-300 font-mono text-xs">
+                      {new Date(user.created_at).toLocaleDateString()}
+                    </p>
                   </div>
                 </div>
-                <p className="text-sm text-gray-300 capitalize">{user.role}</p>
-                <p className="font-mono text-xs text-gray-400">
-                  {new Date(user.created_at).toLocaleDateString()}
-                </p>
-                <span className="px-2 py-1 bg-primary/20 text-primary text-xs font-mono font-bold rounded w-fit">
-                  {user.status.toUpperCase()}
-                </span>
               </div>
             ))
           )}
