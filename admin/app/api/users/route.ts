@@ -72,12 +72,7 @@ export async function POST(request: NextRequest) {
 
     if (error) throw error
 
-    // Send invite email
-    await authClient.auth.admin.sendRawEmail({
-      to: email,
-      html: `<p>Welcome to Splice!</p><p>Click below to set your password and start recording videos:</p><a href="${supabaseUrl}/auth/v1/verify?token=${authData?.user?.confirmation_token}&type=signup">Set Password</a>`,
-    }).catch(() => {}) // Ignore email errors for MVP
-
+    // Supabase automatically sends confirmation email when email_confirm is false
     return NextResponse.json(data[0], { status: 201 })
   } catch (error) {
     console.error('Error creating user:', error)
