@@ -1,0 +1,83 @@
+/** @type {import('tailwindcss').Config} */
+module.exports = {
+  content: [
+    './app/**/*.{js,ts,jsx,tsx}',
+    './components/**/*.{js,ts,jsx,tsx}',
+  ],
+  theme: {
+    extend: {
+      colors: {
+        'neo-navy': '#0C2033',
+        'neo-navy-hover': '#16324B',
+        'neo-navy-raised': '#132C43',
+        'neo-navy-hairline': '#23405A',
+        'neo-cyan': '#4BC8F2',
+        'neo-cyan-deep': '#0E7FAE',
+        'neo-cyan-deep-hover': '#0A5E82',
+        'neo-cyan-tint-bg': '#E2F5FC',
+        'neo-cyan-tint-fg': '#0A6C95',
+        'neo-page-bg': '#EEF2F5',
+        'neo-mobile-stage-bg': '#E4EAEF',
+        'neo-sidebar-bg': '#F6F8FA',
+        'neo-surface': '#FFFFFF',
+        'neo-surface-subtle': '#FAFCFD',
+        'neo-border': '#DCE4EA',
+        'neo-border-input': '#D3DDE4',
+        'neo-border-soft': '#EDF1F4',
+        'neo-border-dashed': '#C3CDD4',
+        'neo-ink': '#0C2033',
+        'neo-body': '#22333E',
+        'neo-body-muted': '#4A5B66',
+        'neo-muted': '#7A8891',
+        'neo-faint': '#9FAAB2',
+        'neo-faintest': '#A9B4BB',
+        'neo-amber-bg': '#FBF0DC',
+        'neo-amber-fg': '#8A6318',
+        'neo-amber-dot': '#E0A63A',
+        'neo-red-bg': '#FBE4DF',
+        'neo-red-fg': '#A63018',
+        'neo-red-action': '#C0442C',
+        'neo-record-red': '#D8452E',
+        'neo-green-delta': '#0A7A4F',
+        'neo-dark-camera': '#0B0F13',
+      },
+      fontFamily: {
+        'barlow': ['Barlow', 'sans-serif'],
+        'mono': ['IBM Plex Mono', 'monospace'],
+      },
+      fontSize: {
+        'page-title': ['27px', { fontWeight: '600', letterSpacing: '-0.6px' }],
+        'section-title': ['14px', { fontWeight: '600' }],
+        'card-title': ['15.5px', { fontWeight: '600', letterSpacing: '-0.2px' }],
+        'body': ['13px', { lineHeight: '1.62' }],
+        'body-lg': ['14.5px', { lineHeight: '1.62' }],
+      },
+      animation: {
+        'cd-fade': 'fade 120ms ease-out',
+        'cd-rise': 'rise 160ms ease-out',
+        'cd-slide': 'slide 180ms ease-out',
+        'cd-pulse': 'pulse 1.1s ease-in-out infinite',
+        'cd-spin': 'spin 700ms linear infinite',
+      },
+      keyframes: {
+        fade: {
+          '0%': { opacity: '0' },
+          '100%': { opacity: '1' },
+        },
+        rise: {
+          '0%': { opacity: '0', transform: 'translateY(9px)' },
+          '100%': { opacity: '1', transform: 'translateY(0)' },
+        },
+        slide: {
+          '0%': { opacity: '0', transform: 'translateX(28px)' },
+          '100%': { opacity: '1', transform: 'translateX(0)' },
+        },
+      },
+      spacing: {
+        'chrome': '52px',
+        'sidebar': '246px',
+      },
+    },
+  },
+  plugins: [],
+}

@@ -1,0 +1,16 @@
+{
+  "name": "neo-reels",
+  "version": "0.0.1",
+  "description": "NEO Home Loans video content platform",
+  "private": true,
+  "workspaces": [
+    "admin",
+    "officer"
+  ],
+  "scripts": {
+    "dev:admin": "cd admin && npm run dev",
+    "dev:officer": "cd officer && npm start",
+    "build:admin": "cd admin && npm run build",
+    "build:officer": "cd officer && npm run build"
+  }
+}

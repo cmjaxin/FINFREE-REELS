@@ -1,0 +1,30 @@
+{
+  "expo": {
+    "name": "NEO Reels",
+    "slug": "neo-reels",
+    "version": "0.0.1",
+    "assetBundlePatterns": ["**/*"],
+    "ios": {
+      "supportsTabletMode": false,
+      "bundleIdentifier": "com.neohomeloans.reels"
+    },
+    "android": {
+      "package": "com.neohomeloans.reels"
+    },
+    "plugins": [
+      [
+        "expo-camera",
+        {
+          "cameraPermission": "Allow NEO Reels to access your camera"
+        }
+      ],
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "Allow NEO Reels to access your photos",
+          "cameraPermission": "Allow NEO Reels to access your camera"
+        }
+      ]
+    ]
+  }
+}
