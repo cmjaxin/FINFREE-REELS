@@ -45,9 +45,10 @@ export async function POST(request: NextRequest) {
       .eq('id', video.user_id)
       .single()
 
-    // Branding settings (hardcoded for MVP - no dashboard save needed)
+    // Branding settings (hardcoded for MVP)
     const branding = {
       logo_url: 'https://8blocks.s3-us-west-1.amazonaws.com/neo/images/logo.png',
+      disclaimer_text: '© 2026 Better Home & Finance Holding Company and/or its affiliates. Better is a family of companies. Better Mortgage Corporation provides home loans; Better Real Estate, LLC and Better Real Estate California Inc License # 02164055 provides real estate services; Better Cover, LLC sells insurance products; and Better Settlement Services provides title insurance services; and Better Inspect, LLC provides home inspection services. All rights reserved.',
       end_card_text_color: '#FFFFFF',
       disclaimer_text_color: '#999999',
       end_card_hold_seconds: 3,
