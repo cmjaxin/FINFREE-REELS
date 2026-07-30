@@ -3,7 +3,6 @@
 import { useEffect, useState } from 'react'
 import { useRouter, usePathname } from 'next/navigation'
 import { getSession, signOut, getUser } from '@/lib/supabase/auth'
-import DarkModeToggle from '@/components/DarkModeToggle'
 import clsx from 'clsx'
 
 export default function DashboardLayout({
@@ -113,11 +112,8 @@ export default function DashboardLayout({
             <img src="/logo.svg" alt="Splice" className="w-8 h-8"/>
             <span className="text-lg font-bold bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent">Splice</span>
           </div>
-          <div className="ml-auto flex items-center gap-4">
-            <DarkModeToggle />
-            <div className="text-sm text-gray-400">
-              ADMIN
-            </div>
+          <div className="ml-auto text-sm text-gray-400">
+            ADMIN
           </div>
         </header>
 
