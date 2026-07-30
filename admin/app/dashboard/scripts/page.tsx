@@ -89,6 +89,22 @@ export default function ScriptsPage() {
     setFormData({ ...formData, scenes: newScenes })
   }
 
+  const toggleScriptStatus = async (scriptId: string, currentStatus: string) => {
+    try {
+      const newStatus = currentStatus === 'draft' ? 'live' : 'draft'
+      const res = await fetch(`/api/scripts/${scriptId}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ status: newStatus }),
+      })
+      if (res.ok) {
+        fetchScripts()
+      }
+    } catch (error) {
+      console.error('Error updating script:', error)
+    }
+  }
+
   return (
     <div>
       <div className="mb-8 flex items-end justify-between">
@@ -173,14 +189,26 @@ export default function ScriptsPage() {
           ) : (
             scripts.map((script) => (
               <div key={script.id} className="p-4 hover:bg-gray-800 transition">
-                <div className="flex items-start justify-between mb-2">
+                <div className="flex items-start justify-between mb-3">
                   <div>
                     <p className="font-medium text-text-light">{script.title}</p>
                     <p className="font-mono text-xs text-gray-400">{script.slug}</p>
                   </div>
-                  <span className="px-2 py-1 bg-primary/20 text-primary text-xs font-mono font-bold rounded">
-                    {script.status.toUpperCase()}
-                  </span>
+                  <div className="flex items-center gap-2">
+                    <span className={`px-2 py-1 text-xs font-mono font-bold rounded ${
+                      script.status === 'live'
+                        ? 'bg-green-500/20 text-green-400'
+                        : 'bg-gray-700/20 text-gray-400'
+                    }`}>
+                      {script.status.toUpperCase()}
+                    </span>
+                    <button
+                      onClick={() => toggleScriptStatus(script.id, script.status)}
+                      className="px-2 py-1 bg-primary/20 text-primary text-xs rounded hover:bg-primary/40 transition"
+                    >
+                      {script.status === 'draft' ? 'Make live' : 'Draft'}
+                    </button>
+                  </div>
                 </div>
                 <p className="text-xs text-gray-400">3 scenes</p>
               </div>
