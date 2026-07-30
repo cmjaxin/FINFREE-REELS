@@ -50,15 +50,15 @@ export default function DashboardLayout({
   return (
     <div className="flex h-screen bg-neo-page-bg">
       {/* Sidebar */}
-      <aside className="w-sidebar bg-neo-sidebar-bg dark:bg-gray-900 border-r border-neo-border dark:border-gray-800 sticky top-0 overflow-y-auto">
+      <aside className="w-sidebar bg-white dark:bg-gray-900 border-r border-gray-200 dark:border-gray-800 sticky top-0 overflow-y-auto">
         <div className="p-6">
           {/* Company Block */}
-          <div className="mb-8 p-4 bg-neo-navy rounded-lg">
+          <div className="mb-8 p-4 bg-gradient-to-br from-primary-dark to-accent rounded-lg">
             <div className="flex items-center gap-2 mb-1">
-              <div className="w-2 h-2 rounded-full bg-neo-cyan" />
+              <div className="w-2 h-2 rounded-full bg-primary" />
             </div>
-            <h2 className="font-bold text-white text-sm">Splice</h2>
-            <p className="text-xs text-neo-cyan">PROFESSIONAL VIDEOS</p>
+            <h2 className="font-bold text-text-light text-sm">Splice</h2>
+            <p className="text-xs text-primary">PROFESSIONAL VIDEOS</p>
           </div>
 
           {/* Nav */}
@@ -110,11 +110,11 @@ export default function DashboardLayout({
       {/* Main Content */}
       <main className="flex-1 overflow-auto bg-neo-page-bg dark:bg-gray-950">
         {/* Top Chrome */}
-        <header className="h-chrome bg-neo-navy dark:bg-gray-900 text-white sticky top-0 z-40 flex items-center px-8 border-b border-neo-navy-hairline dark:border-gray-800">
+        <header className="h-chrome bg-gradient-to-r from-primary-dark to-accent text-white sticky top-0 z-40 flex items-center px-8 border-b border-primary dark:border-accent">
           <h1 className="font-bold">Splice</h1>
           <div className="ml-auto flex items-center gap-4">
             <DarkModeToggle />
-            <div className="text-sm text-neo-cyan">
+            <div className="text-sm text-text-light">
               ADMIN · COLIN JENSON
             </div>
           </div>
