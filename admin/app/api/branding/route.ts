@@ -31,16 +31,22 @@ export async function POST(request: NextRequest) {
     const body = await request.json()
     const supabase = getSupabaseClient()
 
-    const { data: existing } = await supabase.from('branding').select('id').limit(1).single()
+    // Check if branding record exists
+    const { data: existing, error: fetchError } = await supabase
+      .from('branding')
+      .select('id')
+      .limit(1)
 
-    if (existing?.id) {
+    if (existing && existing.length > 0) {
+      // Update existing
       const { error } = await supabase
         .from('branding')
-        .update(body)
-        .eq('id', existing.id)
+        .update({ ...body, updated_at: new Date().toISOString() })
+        .eq('id', existing[0].id)
 
       if (error) throw error
     } else {
+      // Insert new
       const { error } = await supabase.from('branding').insert([body])
 
       if (error) throw error
@@ -49,6 +55,6 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ success: true })
   } catch (error) {
     console.error('Error saving branding:', error)
-    return NextResponse.json({ error: 'Failed to save branding' }, { status: 500 })
+    return NextResponse.json({ error: error instanceof Error ? error.message : 'Failed to save branding' }, { status: 500 })
   }
 }
