@@ -169,7 +169,8 @@ CREATE INDEX idx_render_jobs_video_id ON render_jobs(video_id);
 
 -- Enable Row Level Security
 ALTER TABLE companies ENABLE ROW LEVEL SECURITY;
-ALTER TABLE users ENABLE ROW LEVEL SECURITY;
+-- NOTE: users table has RLS disabled for MVP due to recursive policy issues
+ALTER TABLE users DISABLE ROW LEVEL SECURITY;
 ALTER TABLE scripts ENABLE ROW LEVEL SECURITY;
 ALTER TABLE videos ENABLE ROW LEVEL SECURITY;
 
