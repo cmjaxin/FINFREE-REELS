@@ -35,14 +35,18 @@ export async function POST(request: NextRequest) {
     const {
       email,
       fullName,
+      password,
       role = 'loan_officer',
       direct_phone,
       title_on_end_card,
       nmls_number,
     } = body
 
-    if (!email || !fullName) {
-      return NextResponse.json({ error: 'Email and name required' }, { status: 400 })
+    if (!email || !fullName || !password) {
+      return NextResponse.json(
+        { error: 'Email, name, and password required' },
+        { status: 400 }
+      )
     }
 
     const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
@@ -56,7 +60,8 @@ export async function POST(request: NextRequest) {
     const authClient = createClient(supabaseUrl, serviceRoleKey)
     const { data: authData, error: authError } = await authClient.auth.admin.createUser({
       email,
-      email_confirm: false,
+      password,
+      email_confirm: true,
       user_metadata: { full_name: fullName },
     })
 
