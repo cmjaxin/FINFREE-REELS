@@ -1,7 +1,6 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { supabase } from '@/lib/supabase/client'
 
 interface Video {
   id: string
@@ -26,15 +25,13 @@ export default function VideosPage() {
 
   const fetchVideos = async () => {
     try {
-      let query = supabase.from('videos').select('*').order('created_at', { ascending: false })
-
+      const url = new URL('/api/videos', window.location.origin)
       if (filter !== 'all') {
-        query = query.eq('status', filter)
+        url.searchParams.set('status', filter)
       }
-
-      const { data, error } = await query
-      if (error) throw error
-      setVideos(data || [])
+      const res = await fetch(url.toString())
+      const data = await res.json()
+      setVideos(Array.isArray(data) ? data : [])
     } catch (error) {
       console.error('Error fetching videos:', error)
     } finally {
