@@ -116,9 +116,9 @@ CREATE TYPE video_status AS ENUM ('awaiting_scenes', 'uploading', 'rendering', '
 
 CREATE TABLE IF NOT EXISTS videos (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  company_id UUID NOT NULL REFERENCES companies(id) ON DELETE CASCADE,
-  script_id UUID NOT NULL REFERENCES scripts(id) ON DELETE CASCADE,
-  user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  company_id UUID REFERENCES companies(id) ON DELETE CASCADE,
+  script_id UUID REFERENCES scripts(id) ON DELETE CASCADE,
+  user_id UUID REFERENCES users(id) ON DELETE CASCADE,
   status video_status DEFAULT 'awaiting_scenes',
   total_duration_seconds INT,
   trimmed_duration_seconds INT,
@@ -128,7 +128,8 @@ CREATE TABLE IF NOT EXISTS videos (
   error_message TEXT,
   created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
   updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
-  completed_at TIMESTAMP WITH TIME ZONE
+  completed_at TIMESTAMP WITH TIME ZONE,
+  clips_deleted_at TIMESTAMP WITH TIME ZONE -- Auto-cleanup tracking
 );
 
 CREATE INDEX idx_videos_company_id ON videos(company_id);
