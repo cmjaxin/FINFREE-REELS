@@ -50,15 +50,13 @@ export default function DashboardLayout({
   return (
     <div className="flex h-screen bg-neo-page-bg">
       {/* Sidebar */}
-      <aside className="w-sidebar bg-white dark:bg-gray-900 border-r border-gray-200 dark:border-gray-800 sticky top-0 overflow-y-auto">
+      <aside className="w-sidebar bg-gray-900 border-r border-gray-800 sticky top-0 overflow-y-auto">
         <div className="p-6">
           {/* Company Block */}
-          <div className="mb-8 p-4 bg-gradient-to-br from-primary-dark to-accent rounded-lg">
-            <div className="flex items-center gap-2 mb-1">
-              <div className="w-2 h-2 rounded-full bg-primary" />
-            </div>
-            <h2 className="font-bold text-text-light text-sm">Splice</h2>
-            <p className="text-xs text-primary">PROFESSIONAL VIDEOS</p>
+          <div className="mb-8">
+            <img src="/logo.svg" alt="Splice" className="w-12 h-12 mb-3"/>
+            <h2 className="font-bold text-text-light text-lg">Splice</h2>
+            <p className="text-xs text-primary mt-1">PROFESSIONAL VIDEOS</p>
           </div>
 
           {/* Nav */}
@@ -72,12 +70,12 @@ export default function DashboardLayout({
                   className={clsx(
                     'flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition',
                     isActive
-                      ? 'bg-white text-neo-navy font-semibold'
-                      : 'text-neo-body-muted hover:bg-neo-surface'
+                      ? 'bg-gradient-to-r from-primary to-accent text-white font-semibold'
+                      : 'text-gray-400 hover:text-text-light hover:bg-gray-800'
                   )}
                 >
                   <span className="w-2 h-2 rounded-full" style={{
-                    backgroundColor: isActive ? '#4BC8F2' : '#9FAAB2',
+                    backgroundColor: isActive ? '#2DAEFF' : '#666',
                   }} />
                   {item.label}
                 </a>
@@ -87,18 +85,18 @@ export default function DashboardLayout({
         </div>
 
         {/* Footer */}
-        <div className="absolute bottom-0 left-0 right-0 p-4 border-t border-neo-border bg-neo-sidebar-bg">
+        <div className="absolute bottom-0 left-0 right-0 p-4 border-t border-gray-800 bg-gray-900">
           <div className="flex items-center gap-3">
-            <div className="w-8 h-8 rounded-full bg-neo-cyan flex items-center justify-center text-neo-navy font-bold text-xs">
+            <div className="w-8 h-8 rounded-full bg-gradient-to-br from-primary to-accent flex items-center justify-center text-white font-bold text-xs">
               CJ
             </div>
             <div className="flex-1 min-w-0">
-              <p className="text-xs font-medium text-neo-ink truncate">Colin Jenson</p>
-              <p className="text-xs text-neo-body-muted truncate">Company admin</p>
+              <p className="text-xs font-medium text-text-light truncate">Colin Jenson</p>
+              <p className="text-xs text-gray-400 truncate">Admin</p>
             </div>
             <button
               onClick={handleSignOut}
-              className="text-neo-body-muted hover:text-neo-red-action transition"
+              className="text-gray-400 hover:text-danger transition"
               title="Sign out"
             >
               ✕
@@ -108,20 +106,23 @@ export default function DashboardLayout({
       </aside>
 
       {/* Main Content */}
-      <main className="flex-1 overflow-auto bg-neo-page-bg dark:bg-gray-950">
+      <main className="flex-1 overflow-auto bg-gray-950">
         {/* Top Chrome */}
-        <header className="h-chrome bg-gradient-to-r from-primary-dark to-accent text-white sticky top-0 z-40 flex items-center px-8 border-b border-primary dark:border-accent">
-          <h1 className="font-bold">Splice</h1>
+        <header className="h-chrome bg-gradient-to-r from-gray-900 to-gray-800 border-b border-gray-800 sticky top-0 z-40 flex items-center px-8">
+          <div className="flex items-center gap-3">
+            <img src="/logo.svg" alt="Splice" className="w-8 h-8"/>
+            <span className="text-lg font-bold bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent">Splice</span>
+          </div>
           <div className="ml-auto flex items-center gap-4">
             <DarkModeToggle />
-            <div className="text-sm text-text-light">
-              ADMIN · COLIN JENSON
+            <div className="text-sm text-gray-400">
+              ADMIN
             </div>
           </div>
         </header>
 
         {/* Content */}
-        <div className="p-8">
+        <div className="p-8 text-text-light">
           {children}
         </div>
       </main>

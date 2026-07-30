@@ -1,0 +1,28 @@
+<svg viewBox="0 0 1024 1024" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="blueGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#2DAEFF;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#1F66F5;stop-opacity:1" />
+    </linearGradient>
+    <linearGradient id="purpleGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#A05BFF;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#7A33F5;stop-opacity:1" />
+    </linearGradient>
+  </defs>
+
+  <!-- Blue shape with film frames -->
+  <path d="M 250 200 Q 250 150 300 150 L 650 150 L 600 350 Q 600 400 550 400 L 300 400 Q 250 400 250 350 Z" fill="url(#blueGrad)"/>
+  <rect x="320" y="200" width="25" height="25" fill="#05070B"/>
+  <rect x="320" y="260" width="25" height="25" fill="#05070B"/>
+  <rect x="320" y="320" width="25" height="25" fill="#05070B"/>
+
+  <!-- Camera circle -->
+  <circle cx="512" cy="450" r="100" fill="#1a1f2e" stroke="#666" stroke-width="8"/>
+  <circle cx="512" cy="450" r="70" fill="#0a0d12"/>
+  <circle cx="512" cy="450" r="20" fill="#FF2B2B"/>
+
+  <!-- Purple shape with film frames -->
+  <path d="M 300 500 Q 250 550 250 600 L 250 750 Q 250 800 300 800 L 650 800 L 700 600 Q 700 550 650 550 L 350 550 Q 300 500 300 500 Z" fill="url(#purpleGrad)"/>
+  <rect x="320" y="600" width="25" height="25" fill="#05070B"/>
+  <rect x="320" y="660" width="25" height="25" fill="#05070B"/>
+</svg>

@@ -31,16 +31,16 @@ export default function DashboardPage() {
       {/* Stats Grid */}
       <div className="grid grid-cols-4 gap-4">
         {stats.map((stat) => (
-          <div key={stat.label} className="bg-white p-5 rounded-lg border border-neo-border">
-            <p className="font-mono text-neo-faint mb-3">{stat.label}</p>
+          <div key={stat.label} className="bg-gray-900 p-5 rounded-lg border border-gray-800 hover:border-primary/50 transition">
+            <p className="font-mono text-gray-400 mb-3 text-xs">{stat.label}</p>
             <div className="flex items-baseline gap-2 mb-3">
-              <span className="text-4xl font-bold text-neo-ink">{stat.value}</span>
-              {stat.unit && <span className="font-mono text-neo-muted">{stat.unit}</span>}
-              {stat.total && <span className="font-mono text-neo-muted">/ {stat.total}</span>}
+              <span className="text-4xl font-bold text-text-light">{stat.value}</span>
+              {stat.unit && <span className="font-mono text-gray-400">{stat.unit}</span>}
+              {stat.total && <span className="font-mono text-gray-400">/ {stat.total}</span>}
             </div>
             <div className="flex items-center justify-between">
-              <span className="text-sm font-medium text-neo-green-delta">{stat.delta}</span>
-              <span className="font-mono text-xs text-neo-body-muted">{stat.period}</span>
+              <span className="text-sm font-medium text-emerald-400">{stat.delta}</span>
+              <span className="font-mono text-xs text-gray-500">{stat.period}</span>
             </div>
           </div>
         ))}
