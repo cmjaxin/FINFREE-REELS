@@ -19,7 +19,7 @@ export default function DashboardPage() {
           <h2 className="text-page-title text-neo-ink">This week at NEO</h2>
         </div>
         <div className="flex gap-3">
-          <button className="px-4 py-2 border border-neo-border-input text-neo-body-muted hover:text-neo-body rounded-lg transition">
+          <button className="px-4 py-2 border border-gray-800-input text-neo-body-muted hover:text-neo-body rounded-lg transition">
             Export CSV
           </button>
           <button className="px-4 py-2 bg-neo-navy hover:bg-neo-navy-hover text-white rounded-lg transition font-medium">
@@ -49,8 +49,8 @@ export default function DashboardPage() {
       {/* Two Column Section */}
       <div className="grid grid-cols-[1.35fr_1fr] gap-6">
         {/* Adoption Gaps */}
-        <div className="bg-white rounded-lg border border-neo-border overflow-hidden">
-          <div className="p-6 border-b border-neo-border">
+        <div className="bg-gray-900 rounded-lg border border-gray-800 overflow-hidden">
+          <div className="p-6 border-b border-gray-800">
             <div className="flex items-center gap-3 mb-1">
               <h3 className="text-card-title text-neo-ink">Adoption gaps</h3>
               <span className="px-2 py-1 bg-neo-amber-bg text-neo-amber-fg text-xs font-mono font-bold rounded">
@@ -75,7 +75,7 @@ export default function DashboardPage() {
               </div>
             ))}
           </div>
-          <div className="p-4 border-t border-neo-border">
+          <div className="p-4 border-t border-gray-800">
             <a href="#" className="text-neo-cyan-deep hover:text-neo-cyan-deep-hover font-medium text-sm">
               View all 24 officers →
             </a>
@@ -83,8 +83,8 @@ export default function DashboardPage() {
         </div>
 
         {/* Render Queue */}
-        <div className="bg-white rounded-lg border border-neo-border overflow-hidden">
-          <div className="p-6 border-b border-neo-border">
+        <div className="bg-gray-900 rounded-lg border border-gray-800 overflow-hidden">
+          <div className="p-6 border-b border-gray-800">
             <div className="flex items-center gap-2 mb-1">
               <span className="w-2 h-2 rounded-full bg-neo-record-red animate-cd-pulse" />
               <h3 className="text-card-title text-neo-ink">Render queue</h3>
@@ -102,7 +102,7 @@ export default function DashboardPage() {
               </div>
             ))}
           </div>
-          <div className="p-4 border-t border-neo-border">
+          <div className="p-4 border-t border-gray-800">
             <p className="font-mono text-xs text-neo-body-muted text-center">
               MEDIAN RENDER 4M 12S / TRIM → STITCH → NORMALIZE → END CARD
             </p>
@@ -115,10 +115,10 @@ export default function DashboardPage() {
         <h3 className="text-card-title text-neo-ink mb-4">Published this week</h3>
         <div className="grid grid-cols-4 gap-4">
           {[1, 2, 3, 4].map((i) => (
-            <div key={i} className="bg-white rounded-lg border border-neo-border overflow-hidden hover:border-neo-ink transition">
+            <div key={i} className="bg-gray-900 rounded-lg border border-gray-800 overflow-hidden hover:border-neo-ink transition">
               {/* Video Placeholder */}
               <div className="aspect-video bg-gradient-to-b from-neo-border to-neo-border-soft flex items-center justify-center text-neo-muted relative group">
-                <button className="w-12 h-12 rounded-full bg-white/50 flex items-center justify-center opacity-0 group-hover:opacity-100 transition">
+                <button className="w-12 h-12 rounded-full bg-gray-900/50 flex items-center justify-center opacity-0 group-hover:opacity-100 transition">
                   ▶
                 </button>
                 <div className="absolute bottom-0 left-0 right-0 p-2 flex gap-2">

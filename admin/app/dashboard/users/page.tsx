@@ -7,7 +7,7 @@ export default function UsersPage() {
     <div>
       <div className="mb-8">
         <p className="font-mono text-neo-muted mb-2">24 ACCOUNTS · 3 PENDING INVITES</p>
-        <h2 className="text-page-title text-neo-ink mb-4">Users</h2>
+        <h2 className="text-page-title text-text-light mb-4">Users</h2>
         <div className="flex gap-3">
           <button className="px-4 py-2 bg-neo-navy hover:bg-neo-navy-hover text-white rounded-lg transition font-medium">
             Invite loan officer
@@ -15,8 +15,8 @@ export default function UsersPage() {
         </div>
       </div>
 
-      <div className="bg-white rounded-lg border border-neo-border overflow-hidden">
-        <div className="p-4 bg-neo-surface-subtle border-b border-neo-border">
+      <div className="bg-gray-900 rounded-lg border border-gray-800 overflow-hidden">
+        <div className="p-4 bg-neo-surface-subtle border-b border-gray-800">
           <p className="font-mono text-sm text-neo-faint">SHOWING 7 OF 24</p>
         </div>
         <div className="divide-y divide-neo-border">
@@ -27,14 +27,14 @@ export default function UsersPage() {
                   DA
                 </div>
                 <div>
-                  <p className="font-medium text-neo-ink">Dana Whitfield</p>
-                  <p className="text-xs text-neo-body-muted">dana@example.com</p>
+                  <p className="font-medium text-text-light">Dana Whitfield</p>
+                  <p className="text-xs text-gray-100-muted">dana@example.com</p>
                 </div>
               </div>
-              <p className="text-sm text-neo-body">Loan Officer</p>
+              <p className="text-sm text-gray-100">Loan Officer</p>
               <p className="font-mono text-sm text-neo-muted">14</p>
               <p className="font-mono text-sm text-neo-muted">8</p>
-              <p className="font-mono text-xs text-neo-body-muted">JUL 29, 3:20 PM</p>
+              <p className="font-mono text-xs text-gray-100-muted">JUL 29, 3:20 PM</p>
               <span className="px-2 py-1 bg-neo-cyan-tint-bg text-neo-cyan-tint-fg text-xs font-mono font-bold rounded w-fit">
                 ACTIVE
               </span>
