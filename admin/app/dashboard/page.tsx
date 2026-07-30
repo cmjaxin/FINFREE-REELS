@@ -1,5 +1,7 @@
 'use client'
 
+export const dynamic = 'force-dynamic'
+
 export default function DashboardPage() {
   const stats = [
     { label: 'ACTIVE OFFICERS', value: '18', total: '24', delta: '+3', period: 'vs last week' },
