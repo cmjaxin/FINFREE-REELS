@@ -16,7 +16,7 @@ export default function RootLayout({
       <head>
         <link href="https://fonts.googleapis.com/css2?family=Barlow:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet" />
       </head>
-      <body className="font-barlow bg-neo-page-bg text-neo-body">
+      <body className="font-barlow bg-neo-page-bg dark:bg-gray-950 text-neo-body dark:text-gray-100">
         {children}
       </body>
     </html>

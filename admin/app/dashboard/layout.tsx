@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react'
 import { useRouter, usePathname } from 'next/navigation'
 import { getSession, signOut, getUser } from '@/lib/supabase/auth'
+import DarkModeToggle from '@/components/DarkModeToggle'
 import clsx from 'clsx'
 
 export default function DashboardLayout({
@@ -49,7 +50,7 @@ export default function DashboardLayout({
   return (
     <div className="flex h-screen bg-neo-page-bg">
       {/* Sidebar */}
-      <aside className="w-sidebar bg-neo-sidebar-bg border-r border-neo-border sticky top-0 overflow-y-auto">
+      <aside className="w-sidebar bg-neo-sidebar-bg dark:bg-gray-900 border-r border-neo-border dark:border-gray-800 sticky top-0 overflow-y-auto">
         <div className="p-6">
           {/* Company Block */}
           <div className="mb-8 p-4 bg-neo-navy rounded-lg">
@@ -107,12 +108,15 @@ export default function DashboardLayout({
       </aside>
 
       {/* Main Content */}
-      <main className="flex-1 overflow-auto">
+      <main className="flex-1 overflow-auto bg-neo-page-bg dark:bg-gray-950">
         {/* Top Chrome */}
-        <header className="h-chrome bg-neo-navy text-white sticky top-0 z-40 flex items-center px-8 border-b border-neo-navy-hairline">
+        <header className="h-chrome bg-neo-navy dark:bg-gray-900 text-white sticky top-0 z-40 flex items-center px-8 border-b border-neo-navy-hairline dark:border-gray-800">
           <h1 className="font-bold">Splice</h1>
-          <div className="ml-auto text-sm text-neo-cyan">
-            ADMIN · COLIN JENSON
+          <div className="ml-auto flex items-center gap-4">
+            <DarkModeToggle />
+            <div className="text-sm text-neo-cyan">
+              ADMIN · COLIN JENSON
+            </div>
           </div>
         </header>
 
