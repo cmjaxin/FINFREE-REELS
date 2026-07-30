@@ -1,137 +1,177 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 
-export const dynamic = 'force-dynamic'
+interface BrandingSettings {
+  id?: string
+  logo_url?: string
+  disclaimer_text: string
+  equal_housing_text: string
+  end_card_hold_seconds: number
+}
 
 export default function BrandingPage() {
-  const [template, setTemplate] = useState('split')
+  const [branding, setBranding] = useState<BrandingSettings>({
+    disclaimer_text: 'This is not an offer to enter into an agreement. Not all customers will be approved.',
+    equal_housing_text: 'Equal Housing Lender',
+    end_card_hold_seconds: 3,
+  })
+  const [saving, setSaving] = useState(false)
+  const [loading, setLoading] = useState(true)
+
+  useEffect(() => {
+    fetchBranding()
+  }, [])
+
+  const fetchBranding = async () => {
+    try {
+      const res = await fetch('/api/branding')
+      const data = await res.json()
+      if (data && data.id) {
+        setBranding(data)
+      }
+    } catch (error) {
+      console.error('Error fetching branding:', error)
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const handleSave = async () => {
+    try {
+      setSaving(true)
+
+      const res = await fetch('/api/branding', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(branding),
+      })
+
+      if (res.ok) {
+        alert('Branding saved!')
+      } else {
+        throw new Error('Failed to save')
+      }
+    } catch (error: any) {
+      alert('Error saving branding: ' + error.message)
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  if (loading) return <div className="text-center py-12 text-gray-400">Loading...</div>
 
   return (
     <div>
       <div className="mb-8 flex items-end justify-between">
         <div>
-          <p className="font-mono text-neo-muted mb-2">STAMPED ON EVERY RENDER</p>
-          <h2 className="text-page-title text-text-light mb-2">Branding & end card</h2>
+          <p className="font-mono text-gray-400 mb-2">STAMPED ON EVERY RENDER</p>
+          <h2 className="text-page-title text-text-light mb-2">End card branding</h2>
+          <p className="text-sm text-gray-400">Clean white vertical card with officer info</p>
         </div>
-        <button className="px-4 py-2 bg-neo-navy hover:bg-neo-navy-hover text-white rounded-lg transition font-medium">
-          Save & re-render queue
+        <button
+          onClick={handleSave}
+          disabled={saving}
+          className="px-4 py-2 bg-gradient-to-r from-primary to-accent hover:from-primary-dark hover:to-accent-light text-white rounded-lg transition font-medium disabled:opacity-50"
+        >
+          {saving ? 'Saving...' : 'Save settings'}
         </button>
       </div>
 
-      <div className="grid grid-cols-[392px_1fr] gap-8">
-        {/* Left Column */}
+      <div className="grid grid-cols-[1fr_400px] gap-8">
+        {/* Left Column - Settings */}
         <div className="space-y-6">
           {/* Logo */}
-          <div className="bg-gray-900 rounded-lg border border-gray-800-dashed border-dashed p-6 text-center">
-            <p className="font-mono text-sm text-gray-100-muted mb-2">DROP NEO LOGO</p>
-            <p className="font-mono text-xs text-neo-faint">SVG OR PNG · TRANSPARENT · MIN 600PX WIDE</p>
-          </div>
-
-          {/* Palette */}
           <div className="bg-gray-900 rounded-lg border border-gray-800 p-6">
-            <h3 className="text-sm font-semibold text-text-light mb-4">Palette</h3>
-            <div className="space-y-3">
-              {[
-                { name: 'Primary NEO navy', color: '#0C2033' },
-                { name: 'Accent NEO cyan', color: '#4BC8F2' },
-                { name: 'End card text', color: '#F2F7FA' },
-                { name: 'Disclaimer text', color: '#61798A' },
-              ].map((swatch) => (
-                <div key={swatch.name} className="flex items-center gap-3">
-                  <div className="w-8 h-8 rounded border border-gray-800" style={{ backgroundColor: swatch.color }} />
-                  <div className="flex-1">
-                    <p className="text-sm text-gray-100">{swatch.name}</p>
-                    <p className="font-mono text-xs text-neo-faint">{swatch.color}</p>
-                  </div>
-                </div>
-              ))}
+            <h3 className="text-sm font-semibold text-text-light mb-4">Logo</h3>
+            <div className="bg-gray-800 border-2 border-dashed border-gray-700 rounded-lg p-8 text-center mb-3">
+              {branding.logo_url ? (
+                <img src={branding.logo_url} alt="Logo" className="w-24 h-24 mx-auto object-contain" />
+              ) : (
+                <p className="text-gray-500 text-sm">Paste logo URL here</p>
+              )}
             </div>
+            <input
+              type="text"
+              placeholder="Logo URL (optional)"
+              value={branding.logo_url || ''}
+              onChange={(e) => setBranding({ ...branding, logo_url: e.target.value })}
+              className="w-full px-3 py-2 bg-gray-800 border border-gray-700 text-text-light rounded-lg focus:outline-none focus:border-primary text-sm"
+            />
           </div>
 
-          {/* End Card Fields */}
+          {/* Disclaimer */}
           <div className="bg-gray-900 rounded-lg border border-gray-800 p-6">
-            <h3 className="text-sm font-semibold text-text-light mb-4">End card fields</h3>
-            <div className="space-y-3">
-              {['Officer name', 'Title + NMLS #', 'Direct phone', 'Email', 'Headshot'].map((field) => (
-                <label key={field} className="flex items-center gap-3">
-                  <input type="checkbox" defaultChecked className="w-4 h-4" />
-                  <span className="text-sm text-gray-100">{field}</span>
-                </label>
-              ))}
-            </div>
+            <h3 className="text-sm font-semibold text-text-light mb-4">Disclaimer text</h3>
+            <textarea
+              value={branding.disclaimer_text}
+              onChange={(e) => setBranding({ ...branding, disclaimer_text: e.target.value })}
+              className="w-full px-3 py-2 bg-gray-800 border border-gray-700 text-text-light rounded-lg focus:outline-none focus:border-primary text-sm"
+              rows={3}
+              placeholder="Disclaimer text shown at bottom of end card"
+            />
+            <p className="text-xs text-gray-500 mt-2">Shown in small gray text at bottom</p>
           </div>
 
-          {/* End Card Hold */}
+          {/* Equal Housing */}
+          <div className="bg-gray-900 rounded-lg border border-gray-800 p-6">
+            <h3 className="text-sm font-semibold text-text-light mb-4">Equal Housing text</h3>
+            <input
+              type="text"
+              value={branding.equal_housing_text}
+              onChange={(e) => setBranding({ ...branding, equal_housing_text: e.target.value })}
+              className="w-full px-3 py-2 bg-gray-800 border border-gray-700 text-text-light rounded-lg focus:outline-none focus:border-primary text-sm"
+              placeholder="Equal Housing Lender"
+            />
+          </div>
+
+          {/* Hold time */}
           <div className="bg-gray-900 rounded-lg border border-gray-800 p-6">
             <div className="flex items-center justify-between mb-3">
-              <p className="text-sm font-medium text-gray-100">End card hold</p>
-              <span className="font-mono text-sm font-bold text-neo-navy">3.0s</span>
+              <p className="text-sm font-medium text-gray-100">End card duration</p>
+              <span className="font-mono text-sm font-bold text-primary">{branding.end_card_hold_seconds}s</span>
             </div>
-            <input type="range" min="1" max="5" defaultValue="3" step="0.1" className="w-full" />
+            <input
+              type="range"
+              min="1"
+              max="10"
+              step="0.5"
+              value={branding.end_card_hold_seconds}
+              onChange={(e) =>
+                setBranding({ ...branding, end_card_hold_seconds: parseFloat(e.target.value) })
+              }
+              className="w-full"
+            />
           </div>
         </div>
 
-        {/* Right Column */}
-        <div className="space-y-6">
-          {/* Template Selection */}
-          <div className="bg-gray-900 rounded-lg border border-gray-800 p-6">
-            <h3 className="text-sm font-semibold text-text-light mb-4">Template</h3>
-            <div className="grid grid-cols-3 gap-3">
-              {[
-                { id: 'split', label: 'Split', desc: 'Headshot right' },
-                { id: 'centered', label: 'Centered', desc: 'Portrait on top' },
-                { id: 'lower', label: 'Lower band', desc: 'Full-width strip' },
-              ].map((t) => (
-                <button
-                  key={t.id}
-                  onClick={() => setTemplate(t.id)}
-                  className={`p-3 rounded-lg border transition ${
-                    template === t.id
-                      ? 'border-neo-navy bg-neo-navy/5'
-                      : 'border-gray-800 hover:border-neo-navy'
-                  }`}
-                >
-                  <div className="w-full aspect-video bg-gradient-to-b from-neo-navy to-neo-navy-raised rounded mb-2" />
-                  <p className="text-xs font-medium text-gray-100">{t.label}</p>
-                  <p className="font-mono text-xs text-neo-faint">{t.desc}</p>
-                </button>
-              ))}
-            </div>
-          </div>
+        {/* Right Column - Preview */}
+        <div>
+          <div className="bg-white rounded-lg border border-gray-200 overflow-hidden shadow-lg sticky top-20">
+            {/* Preview */}
+            <div className="aspect-[9/16] bg-white flex flex-col items-center justify-between p-6">
+              {/* Logo area */}
+              <div className="w-full h-24 flex items-center justify-center bg-gray-50 rounded mb-4">
+                {branding.logo_url ? (
+                  <img src={branding.logo_url} alt="Logo" className="max-w-full max-h-full" />
+                ) : (
+                  <p className="text-gray-400 text-xs">Logo preview</p>
+                )}
+              </div>
 
-          {/* Preview Officer Selection */}
-          <div className="bg-gray-900 rounded-lg border border-gray-800 p-6">
-            <h3 className="text-sm font-semibold text-text-light mb-3">Preview as</h3>
-            <div className="flex gap-2 flex-wrap">
-              {['Dana Whitfield', 'Marcus Oyelaran', 'Alex Chen'].map((officer) => (
-                <button
-                  key={officer}
-                  className="px-3 py-1 bg-neo-surface-subtle border border-gray-800 text-gray-100 text-xs rounded hover:bg-neo-navy hover:text-white hover:border-neo-navy transition"
-                >
-                  {officer}
-                </button>
-              ))}
-            </div>
-          </div>
+              {/* Officer info */}
+              <div className="text-center flex-1 flex flex-col justify-center">
+                <p className="text-lg font-bold text-gray-900 mb-1">Officer Name</p>
+                <p className="text-sm text-gray-600 mb-2">Senior Loan Officer • NMLS #123456</p>
+                <p className="text-sm text-gray-600 mb-1">officer@company.com</p>
+                <p className="text-sm text-gray-600">(555) 123-4567</p>
+              </div>
 
-          {/* End Card Preview */}
-          <div className="bg-neo-navy rounded-lg overflow-hidden aspect-video flex items-center justify-center text-neo-cyan text-sm">
-            <div className="text-center">
-              <p className="font-mono text-xs text-neo-dark-text-muted mb-2">PREVIEW</p>
-              <p className="text-neo-dark-text">16:9 end card</p>
-            </div>
-          </div>
-
-          {/* Notes */}
-          <div className="space-y-2 text-xs">
-            <div className="p-3 bg-neo-cyan-tint-bg text-neo-cyan-tint-fg rounded-lg">
-              <p className="font-mono font-bold mb-1">APPLIES TO</p>
-              <p>All future renders</p>
-            </div>
-            <div className="p-3 bg-neo-neutral pill bg-neo-surface-subtle text-gray-100-muted rounded-lg">
-              <p className="font-mono font-bold mb-1">PER-OFFICER</p>
-              <p>Headshots stamp per user record</p>
+              {/* Disclaimer */}
+              <div className="border-t border-gray-300 pt-4 text-center">
+                <p className="text-xs text-gray-500 mb-2">{branding.disclaimer_text}</p>
+                <p className="text-xs font-semibold text-gray-700">{branding.equal_housing_text}</p>
+              </div>
             </div>
           </div>
         </div>

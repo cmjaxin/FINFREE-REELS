@@ -11,6 +11,11 @@ interface User {
   role: string
   status: string
   created_at: string
+  title_on_end_card?: string
+  direct_phone?: string
+  work_email?: string
+  nmls_number?: string
+  headshot_url?: string
 }
 
 export default function UsersPage() {
@@ -19,6 +24,9 @@ export default function UsersPage() {
   const [newUserEmail, setNewUserEmail] = useState('')
   const [newUserName, setNewUserName] = useState('')
   const [creatingUser, setCreatingUser] = useState(false)
+  const [selectedUser, setSelectedUser] = useState<User | null>(null)
+  const [editingUser, setEditingUser] = useState<User | null>(null)
+  const [savingUser, setSavingUser] = useState(false)
 
   useEffect(() => {
     fetchUsers()
@@ -57,6 +65,35 @@ export default function UsersPage() {
       console.error('Error creating user:', error)
     } finally {
       setCreatingUser(false)
+    }
+  }
+
+  const handleSaveUser = async (e: React.FormEvent) => {
+    e.preventDefault()
+    if (!editingUser) return
+
+    setSavingUser(true)
+    try {
+      const res = await fetch(`/api/users/${editingUser.id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          title_on_end_card: editingUser.title_on_end_card,
+          direct_phone: editingUser.direct_phone,
+          work_email: editingUser.work_email,
+          nmls_number: editingUser.nmls_number,
+          headshot_url: editingUser.headshot_url,
+        }),
+      })
+      if (res.ok) {
+        setSelectedUser(null)
+        setEditingUser(null)
+        fetchUsers()
+      }
+    } catch (error) {
+      console.error('Error saving user:', error)
+    } finally {
+      setSavingUser(false)
     }
   }
 

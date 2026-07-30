@@ -38,7 +38,19 @@ export async function POST(request: NextRequest) {
 
     if (videoError || !video) throw new Error('Video not found')
 
-    const { data: user } = await supabase.from('users').select('*').eq('id', video.user_id).single()
+    // Get officer info
+    const { data: user } = await supabase
+      .from('users')
+      .select('*')
+      .eq('id', video.user_id)
+      .single()
+
+    // Get branding settings
+    const { data: branding } = await supabase
+      .from('branding')
+      .select('*')
+      .limit(1)
+      .single()
 
     // Build Shotstack timeline from clips
     const clips = (video.video_clips || []).sort((a: any, b: any) => a.scenes.scene_order - b.scenes.scene_order)
@@ -59,20 +71,76 @@ export async function POST(request: NextRequest) {
       ],
     }
 
-    // Add end card with officer info
-    timeline.tracks.push({
-      clips: [
-        {
+    // Build end card with officer info
+    const endCardClips: any[] = []
+
+    // Background
+    if (branding?.end_card_template === 'split') {
+      endCardClips.push({
+        type: 'title',
+        text: user?.full_name || 'Officer',
+        style: 'bold',
+        color: branding?.end_card_text_color || '#FFFFFF',
+        size: 'large',
+        position: 'top-left',
+        length: branding?.end_card_hold_seconds || 3,
+      })
+
+      if (user?.title_on_end_card) {
+        endCardClips.push({
           type: 'title',
-          text: user?.full_name || 'Officer',
-          style: 'bold',
-          color: '#FFFFFF',
-          size: 'medium',
-          background: { color: '#2DAEFF' },
-          length: 3,
-        },
-      ],
-    })
+          text: user.title_on_end_card,
+          style: 'normal',
+          color: branding?.end_card_text_color || '#FFFFFF',
+          size: 'small',
+          position: 'top-left',
+          offsetY: 40,
+          length: branding?.end_card_hold_seconds || 3,
+        })
+      }
+
+      if (user?.direct_phone) {
+        endCardClips.push({
+          type: 'title',
+          text: user.direct_phone,
+          style: 'normal',
+          color: branding?.disclaimer_text_color || '#999999',
+          size: 'small',
+          position: 'bottom-left',
+          length: branding?.end_card_hold_seconds || 3,
+        })
+      }
+
+      if (user?.work_email) {
+        endCardClips.push({
+          type: 'title',
+          text: user.work_email,
+          style: 'normal',
+          color: branding?.disclaimer_text_color || '#999999',
+          size: 'small',
+          position: 'bottom-left',
+          offsetY: -20,
+          length: branding?.end_card_hold_seconds || 3,
+        })
+      }
+    } else if (branding?.end_card_template === 'centered') {
+      endCardClips.push({
+        type: 'title',
+        text: user?.full_name || 'Officer',
+        style: 'bold',
+        color: branding?.end_card_text_color || '#FFFFFF',
+        size: 'large',
+        position: 'center',
+        length: branding?.end_card_hold_seconds || 3,
+      })
+    }
+
+    // Add end card track
+    if (endCardClips.length > 0) {
+      timeline.tracks.push({
+        clips: endCardClips,
+      })
+    }
 
     // Send to Shotstack
     const shotStackResponse = await fetch(`${shotStackUrl}`, {
@@ -100,7 +168,7 @@ export async function POST(request: NextRequest) {
     // Update video with render job ID
     const { error: updateError } = await supabase
       .from('videos')
-      .update({ render_job_id: renderId, status: 'rendering' })
+      .update({ render_job_id: renderId, status: 'rendering', updated_at: new Date().toISOString() })
       .eq('id', videoId)
 
     if (updateError) throw updateError

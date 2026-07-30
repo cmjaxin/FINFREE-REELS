@@ -1,7 +1,6 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import { supabase } from '@/lib/supabase/client'
 
 interface Scene {
   id?: string
@@ -39,9 +38,9 @@ export default function ScriptsPage() {
 
   const fetchScripts = async () => {
     try {
-      const { data, error } = await supabase.from('scripts').select('*').order('created_at', { ascending: false })
-      if (error) throw error
-      setScripts((data as any[]) || [])
+      const res = await fetch('/api/scripts')
+      const data = await res.json()
+      setScripts(Array.isArray(data) ? data : [])
     } catch (error) {
       console.error('Error fetching scripts:', error)
     } finally {
@@ -54,43 +53,31 @@ export default function ScriptsPage() {
     if (!formData.title || !formData.slug) return
 
     try {
-      const { data: script, error: scriptError } = await supabase
-        .from('scripts')
-        .insert([
-          {
-            title: formData.title,
-            slug: formData.slug,
-            status: 'draft',
-          },
-        ])
-        .select()
-
-      if (scriptError) throw scriptError
-
-      const scriptId = script[0].id
-      const scenesToInsert = formData.scenes.map((scene, idx) => ({
-        script_id: scriptId,
-        kind: scene.kind,
-        text: scene.text,
-        duration_seconds: scene.duration_seconds,
-        scene_order: idx,
-      }))
-
-      const { error: scenesError } = await supabase.from('scenes').insert(scenesToInsert)
-
-      if (scenesError) throw scenesError
-
-      setFormData({
-        title: '',
-        slug: '',
-        scenes: [
-          { kind: 'hook', text: '', duration_seconds: 30 },
-          { kind: 'body', text: '', duration_seconds: 60 },
-          { kind: 'cta', text: '', duration_seconds: 15 },
-        ],
+      const res = await fetch('/api/scripts', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          title: formData.title,
+          slug: formData.slug,
+          scenes: formData.scenes,
+        }),
       })
-      setShowForm(false)
-      fetchScripts()
+
+      if (res.ok) {
+        setFormData({
+          title: '',
+          slug: '',
+          scenes: [
+            { kind: 'hook', text: '', duration_seconds: 30 },
+            { kind: 'body', text: '', duration_seconds: 60 },
+            { kind: 'cta', text: '', duration_seconds: 15 },
+          ],
+        })
+        setShowForm(false)
+        fetchScripts()
+      } else {
+        throw new Error('Failed to create script')
+      }
     } catch (error) {
       console.error('Error creating script:', error)
     }
