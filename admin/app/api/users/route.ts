@@ -38,6 +38,24 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Email and name required' }, { status: 400 })
     }
 
+    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
+    const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY
+
+    if (!supabaseUrl || !serviceRoleKey) {
+      throw new Error('Missing Supabase admin credentials')
+    }
+
+    // Create auth account with admin client
+    const authClient = createClient(supabaseUrl, serviceRoleKey)
+    const { data: authData, error: authError } = await authClient.auth.admin.createUser({
+      email,
+      email_confirm: false,
+      user_metadata: { full_name: fullName },
+    })
+
+    if (authError) throw new Error(`Auth creation failed: ${authError.message}`)
+
+    // Create user record in database
     const supabase = getSupabaseClient()
     const { data, error } = await supabase
       .from('users')
@@ -47,11 +65,18 @@ export async function POST(request: NextRequest) {
           full_name: fullName,
           role,
           status: 'active',
+          auth_id: authData?.user?.id,
         },
       ])
       .select()
 
     if (error) throw error
+
+    // Send invite email
+    await authClient.auth.admin.sendRawEmail({
+      to: email,
+      html: `<p>Welcome to Splice!</p><p>Click below to set your password and start recording videos:</p><a href="${supabaseUrl}/auth/v1/verify?token=${authData?.user?.confirmation_token}&type=signup">Set Password</a>`,
+    }).catch(() => {}) // Ignore email errors for MVP
 
     return NextResponse.json(data[0], { status: 201 })
   } catch (error) {
