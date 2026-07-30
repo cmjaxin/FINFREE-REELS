@@ -42,9 +42,9 @@ CREATE TYPE user_status AS ENUM ('active', 'idle', 'invited');
 
 CREATE TABLE IF NOT EXISTS users (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  auth_id UUID NOT NULL UNIQUE REFERENCES auth.users(id) ON DELETE CASCADE,
-  company_id UUID NOT NULL REFERENCES companies(id) ON DELETE CASCADE,
-  email TEXT NOT NULL,
+  auth_id UUID UNIQUE REFERENCES auth.users(id) ON DELETE CASCADE,
+  company_id UUID REFERENCES companies(id) ON DELETE CASCADE,
+  email TEXT NOT NULL UNIQUE,
   full_name TEXT NOT NULL,
   title_on_end_card TEXT,
   work_email TEXT,
