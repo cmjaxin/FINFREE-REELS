@@ -10,7 +10,7 @@ export default function LoginScreen() {
 
   const handleLogin = async () => {
     if (!email || !password) {
-      Alert.alert('Error', 'Please enter email and password')
+      Alert.alert('Error', 'Please enter both email and password')
       return
     }
 
@@ -18,7 +18,7 @@ export default function LoginScreen() {
       setLoading(true)
       await signIn(email, password)
     } catch (error: any) {
-      Alert.alert('Login Failed', error.message || 'Failed to sign in')
+      Alert.alert('Login Failed', error.message || 'Check your email and password')
     } finally {
       setLoading(false)
     }
@@ -26,39 +26,45 @@ export default function LoginScreen() {
 
   return (
     <View style={styles.container}>
-      <Text style={styles.title}>Splice</Text>
-      <Text style={styles.subtitle}>Officer Portal</Text>
+      <View style={styles.headerSection}>
+        <Text style={styles.title}>Splice</Text>
+        <Text style={styles.subtitle}>Create Professional Videos</Text>
+      </View>
 
-      <TextInput
-        style={styles.input}
-        placeholder="Email"
-        placeholderTextColor="#999"
-        value={email}
-        onChangeText={setEmail}
-        editable={!loading}
-        autoCapitalize="none"
-        keyboardType="email-address"
-      />
+      <View style={styles.formSection}>
+        <Text style={styles.label}>Email Address</Text>
+        <TextInput
+          style={styles.input}
+          placeholder="your.email@company.com"
+          placeholderTextColor="#666"
+          value={email}
+          onChangeText={setEmail}
+          editable={!loading}
+          autoCapitalize="none"
+          keyboardType="email-address"
+        />
 
-      <TextInput
-        style={styles.input}
-        placeholder="Password"
-        placeholderTextColor="#999"
-        value={password}
-        onChangeText={setPassword}
-        secureTextEntry
-        editable={!loading}
-      />
+        <Text style={styles.label}>Password</Text>
+        <TextInput
+          style={styles.input}
+          placeholder="Enter your password"
+          placeholderTextColor="#666"
+          value={password}
+          onChangeText={setPassword}
+          secureTextEntry
+          editable={!loading}
+        />
 
-      <TouchableOpacity
-        style={[styles.button, loading && styles.buttonDisabled]}
-        onPress={handleLogin}
-        disabled={loading}
-      >
-        <Text style={styles.buttonText}>{loading ? 'Signing in...' : 'Sign in'}</Text>
-      </TouchableOpacity>
+        <TouchableOpacity
+          style={[styles.button, loading && styles.buttonDisabled]}
+          onPress={handleLogin}
+          disabled={loading}
+        >
+          <Text style={styles.buttonText}>{loading ? 'Signing in...' : 'Sign In'}</Text>
+        </TouchableOpacity>
+      </View>
 
-      <Text style={styles.helperText}>Log in with your Splice account</Text>
+      <Text style={styles.helperText}>Contact your admin if you don't have a login</Text>
     </View>
   )
 }
@@ -68,10 +74,14 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: '#000a15',
     justifyContent: 'center',
-    paddingHorizontal: 20,
+    paddingHorizontal: 24,
+  },
+  headerSection: {
+    alignItems: 'center',
+    marginBottom: 60,
   },
   title: {
-    fontSize: 32,
+    fontSize: 40,
     fontWeight: 'bold',
     color: '#2DAEFF',
     textAlign: 'center',
@@ -79,9 +89,18 @@ const styles = StyleSheet.create({
   },
   subtitle: {
     fontSize: 16,
-    color: '#999',
+    color: '#aaa',
     textAlign: 'center',
+  },
+  formSection: {
     marginBottom: 40,
+  },
+  label: {
+    color: '#ddd',
+    fontSize: 14,
+    fontWeight: '600',
+    marginBottom: 8,
+    marginTop: 16,
   },
   input: {
     backgroundColor: '#1a2633',
@@ -89,17 +108,15 @@ const styles = StyleSheet.create({
     borderColor: '#2d3e4f',
     borderRadius: 8,
     paddingHorizontal: 16,
-    paddingVertical: 12,
-    marginBottom: 16,
+    paddingVertical: 14,
     color: '#fff',
     fontSize: 16,
   },
   button: {
     backgroundColor: '#2DAEFF',
     borderRadius: 8,
-    paddingVertical: 14,
-    marginTop: 8,
-    marginBottom: 24,
+    paddingVertical: 16,
+    marginTop: 32,
     alignItems: 'center',
   },
   buttonDisabled: {
@@ -108,11 +125,11 @@ const styles = StyleSheet.create({
   buttonText: {
     color: '#000',
     fontSize: 16,
-    fontWeight: '600',
+    fontWeight: '700',
   },
   helperText: {
     textAlign: 'center',
-    color: '#999',
-    fontSize: 14,
+    color: '#777',
+    fontSize: 13,
   },
 })

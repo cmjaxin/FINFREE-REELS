@@ -20,6 +20,12 @@ interface Script {
   scenes: Scene[]
 }
 
+const sceneGuidance: Record<string, string> = {
+  hook: '👋 Introduce yourself\nBe friendly, energetic, and get their attention',
+  body: '💬 Explain the offer\nShare key benefits clearly and confidently',
+  cta: '✅ Call to action\nTell them exactly what to do next',
+}
+
 export default function RecordingScreen() {
   const [permission, requestPermission] = useCameraPermissions()
   const [scripts, setScripts] = useState<Script[]>([])
@@ -29,12 +35,28 @@ export default function RecordingScreen() {
   const [uploading, setUploading] = useState(false)
   const [loading, setLoading] = useState(true)
   const [recordedScenes, setRecordedScenes] = useState<Set<number>>(new Set())
+  const [recordingTime, setRecordingTime] = useState(0)
   const cameraRef = useRef<CameraView>(null)
+  const recordingIntervalRef = useRef<NodeJS.Timeout | null>(null)
   const { user, signOut } = useAuth()
 
   useEffect(() => {
     fetchScripts()
   }, [])
+
+  useEffect(() => {
+    if (recording) {
+      recordingIntervalRef.current = setInterval(() => {
+        setRecordingTime((t) => t + 0.1)
+      }, 100)
+    } else {
+      if (recordingIntervalRef.current) clearInterval(recordingIntervalRef.current)
+      setRecordingTime(0)
+    }
+    return () => {
+      if (recordingIntervalRef.current) clearInterval(recordingIntervalRef.current)
+    }
+  }, [recording])
 
   const fetchScripts = async () => {
     try {
@@ -90,12 +112,17 @@ export default function RecordingScreen() {
       <View style={styles.container}>
         <View style={styles.header}>
           <Text style={styles.title}>Splice</Text>
-          <Text style={styles.subtitle}>Officer Portal</Text>
+          <Text style={styles.subtitle}>Available Scripts</Text>
+          {user && <Text style={styles.userEmail}>{user.email}</Text>}
         </View>
 
-        <ScrollView style={styles.scriptList}>
+        <ScrollView style={styles.scriptList} contentContainerStyle={styles.listContent}>
           {scripts.length === 0 ? (
-            <Text style={styles.emptyText}>No scripts available</Text>
+            <View style={styles.emptyContainer}>
+              <Text style={styles.emptyIcon}>📹</Text>
+              <Text style={styles.emptyText}>No scripts available yet</Text>
+              <Text style={styles.emptySubText}>Ask your admin to publish a script</Text>
+            </View>
           ) : (
             scripts.map((script) => (
               <TouchableOpacity
@@ -107,8 +134,16 @@ export default function RecordingScreen() {
                   setRecordedScenes(new Set())
                 }}
               >
-                <Text style={styles.scriptTitle}>{script.title}</Text>
-                <Text style={styles.scriptSub}>{script.scenes.length} scenes</Text>
+                <View style={styles.scriptCardHeader}>
+                  <View>
+                    <Text style={styles.scriptTitle}>{script.title}</Text>
+                    <Text style={styles.scriptSub}>Ready to record →</Text>
+                  </View>
+                  <Text style={styles.sceneCount}>{script.scenes.length}</Text>
+                </View>
+                <Text style={styles.scriptDuration}>
+                  ~{script.scenes.reduce((sum: number, s: Scene) => sum + s.duration_seconds, 0)}s total
+                </Text>
               </TouchableOpacity>
             ))
           )}
@@ -217,51 +252,79 @@ export default function RecordingScreen() {
     <View style={styles.container}>
       <CameraView style={styles.camera} ref={cameraRef} facing="front" />
 
-      <View style={styles.sceneIndicator}>
-        <Text style={styles.sceneText}>
-          Scene {currentSceneIdx + 1} of {selectedScript.scenes.length}
-        </Text>
-        <Text style={styles.sceneKind}>{currentScene.kind.toUpperCase()}</Text>
-      </View>
+      <View style={styles.overlay}>
+        {/* Top progress bar */}
+        <View style={styles.progressBar}>
+          {selectedScript.scenes.map((_, idx) => (
+            <View
+              key={idx}
+              style={[
+                styles.progressBarSegment,
+                recordedScenes.has(idx) && styles.progressBarSegmentDone,
+                idx === currentSceneIdx && styles.progressBarSegmentActive,
+              ]}
+            />
+          ))}
+        </View>
 
-      <View style={styles.sceneContent}>
-        <Text style={styles.sceneDescription}>{currentScene.text}</Text>
-        <Text style={styles.duration}>{currentScene.duration_seconds}s</Text>
-      </View>
+        {/* Scene guidance card */}
+        <View style={styles.sceneCard}>
+          <Text style={styles.sceneNumber}>Scene {currentSceneIdx + 1} of {selectedScript.scenes.length}</Text>
+          <Text style={styles.sceneKindLabel}>{currentScene.kind.toUpperCase()}</Text>
+          <Text style={styles.sceneGuidance}>{sceneGuidance[currentScene.kind] || ''}</Text>
+          <Text style={styles.sceneInstruction}>{currentScene.text}</Text>
+          <Text style={styles.sceneDuration}>Record for ~{currentScene.duration_seconds}s</Text>
+        </View>
 
-      <View style={styles.controls}>
-        <TouchableOpacity
-          style={[styles.recordButton, recording && styles.recordingActive]}
-          onPress={recording ? stopRecording : startRecording}
-          disabled={uploading}
-        >
-          <Text style={styles.recordButtonText}>
-            {uploading ? 'Uploading...' : recording ? 'Stop' : 'Record'}
-          </Text>
-        </TouchableOpacity>
-
-        {isAllRecorded && (
-          <TouchableOpacity style={styles.renderButton} onPress={handleRender} disabled={uploading}>
-            <Text style={styles.renderButtonText}>Render</Text>
-          </TouchableOpacity>
+        {/* Recording timer */}
+        {recording && (
+          <View style={styles.timerContainer}>
+            <Text style={styles.timerText}>{recordingTime.toFixed(1)}s</Text>
+          </View>
         )}
 
+        {/* Controls */}
+        <View style={styles.controls}>
+          <TouchableOpacity
+            style={[styles.recordButton, recording && styles.recordingActive]}
+            onPress={recording ? stopRecording : startRecording}
+            disabled={uploading}
+          >
+            <Text style={styles.recordButtonIcon}>{recording ? '⏹' : '🔴'}</Text>
+            <Text style={styles.recordButtonText}>
+              {uploading ? 'Uploading...' : recording ? 'Stop' : 'Record'}
+            </Text>
+          </TouchableOpacity>
+
+          {isAllRecorded && (
+            <TouchableOpacity style={styles.renderButton} onPress={handleRender} disabled={uploading}>
+              <Text style={styles.renderButtonIcon}>✨</Text>
+              <Text style={styles.renderButtonText}>Render Video</Text>
+            </TouchableOpacity>
+          )}
+        </View>
+
+        {/* Back button */}
         <TouchableOpacity
           style={styles.backButton}
           onPress={() => setSelectedScript(null)}
           disabled={uploading}
         >
-          <Text style={styles.backText}>Back</Text>
+          <Text style={styles.backText}>← Back</Text>
         </TouchableOpacity>
-      </View>
 
-      <View style={styles.progress}>
-        {selectedScript.scenes.map((_, idx) => (
-          <View
-            key={idx}
-            style={[styles.progressDot, recordedScenes.has(idx) && styles.progressDotDone]}
-          />
-        ))}
+        {/* Status message */}
+        {recordedScenes.has(currentSceneIdx) && !isAllRecorded && (
+          <View style={styles.statusMessage}>
+            <Text style={styles.statusText}>✓ Scene recorded! Swipe down or tap back to next scene.</Text>
+          </View>
+        )}
+
+        {isAllRecorded && (
+          <View style={styles.completeMessage}>
+            <Text style={styles.completeText}>🎬 All scenes recorded! Ready to render.</Text>
+          </View>
+        )}
       </View>
     </View>
   )
@@ -276,43 +339,83 @@ const styles = StyleSheet.create({
     paddingTop: 40,
     paddingBottom: 20,
     alignItems: 'center',
+    backgroundColor: '#000a15',
   },
   title: {
-    fontSize: 28,
+    fontSize: 32,
     fontWeight: 'bold',
     color: '#2DAEFF',
   },
   subtitle: {
-    fontSize: 14,
-    color: '#999',
+    fontSize: 16,
+    color: '#aaa',
     marginTop: 4,
+  },
+  userEmail: {
+    fontSize: 12,
+    color: '#666',
+    marginTop: 8,
   },
   scriptList: {
     flex: 1,
+  },
+  listContent: {
     paddingHorizontal: 16,
+    paddingBottom: 20,
   },
   scriptCard: {
-    backgroundColor: '#1a2633',
+    backgroundColor: 'rgba(45, 174, 255, 0.08)',
     borderWidth: 1,
-    borderColor: '#2d3e4f',
-    borderRadius: 8,
+    borderColor: '#2DAEFF',
+    borderRadius: 12,
     padding: 16,
     marginBottom: 12,
   },
+  scriptCardHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'flex-start',
+    marginBottom: 8,
+  },
   scriptTitle: {
     color: '#fff',
-    fontSize: 16,
-    fontWeight: '600',
-    marginBottom: 4,
+    fontSize: 18,
+    fontWeight: '700',
   },
   scriptSub: {
+    color: '#2DAEFF',
+    fontSize: 12,
+    fontWeight: '600',
+    marginTop: 4,
+  },
+  sceneCount: {
+    color: '#2DAEFF',
+    fontSize: 24,
+    fontWeight: 'bold',
+  },
+  scriptDuration: {
     color: '#999',
     fontSize: 12,
   },
+  emptyContainer: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 60,
+  },
+  emptyIcon: {
+    fontSize: 48,
+    marginBottom: 16,
+  },
   emptyText: {
-    color: '#999',
+    color: '#ccc',
+    fontSize: 16,
+    fontWeight: '600',
     textAlign: 'center',
-    marginTop: 40,
+  },
+  emptySubText: {
+    color: '#666',
+    fontSize: 13,
+    marginTop: 8,
   },
   footer: {
     paddingHorizontal: 16,
@@ -321,7 +424,7 @@ const styles = StyleSheet.create({
   signOutButton: {
     paddingVertical: 12,
     borderWidth: 1,
-    borderColor: '#999',
+    borderColor: '#666',
     borderRadius: 6,
   },
   signOutText: {
@@ -332,96 +435,160 @@ const styles = StyleSheet.create({
   camera: {
     flex: 1,
   },
-  sceneIndicator: {
-    backgroundColor: 'rgba(0, 0, 0, 0.7)',
-    padding: 12,
-    alignItems: 'center',
+  overlay: {
+    ...StyleSheet.absoluteFillObject,
+    justifyContent: 'space-between',
+    paddingTop: 12,
+    paddingBottom: 24,
   },
-  sceneText: {
-    color: '#fff',
+  progressBar: {
+    flexDirection: 'row',
+    height: 4,
+    gap: 4,
+    paddingHorizontal: 16,
+    marginBottom: 12,
+  },
+  progressBarSegment: {
+    flex: 1,
+    height: 4,
+    backgroundColor: 'rgba(255, 255, 255, 0.2)',
+    borderRadius: 2,
+  },
+  progressBarSegmentDone: {
+    backgroundColor: '#2DAEFF',
+  },
+  progressBarSegmentActive: {
+    backgroundColor: '#7A33F5',
+  },
+  sceneCard: {
+    backgroundColor: 'rgba(0, 10, 21, 0.92)',
+    borderTopWidth: 1,
+    borderBottomWidth: 1,
+    borderColor: 'rgba(45, 174, 255, 0.3)',
+    paddingHorizontal: 16,
+    paddingVertical: 16,
+    marginHorizontal: 12,
+    borderRadius: 8,
+  },
+  sceneNumber: {
+    color: '#999',
     fontSize: 12,
     fontWeight: '600',
+    marginBottom: 6,
   },
-  sceneKind: {
+  sceneKindLabel: {
     color: '#2DAEFF',
-    fontSize: 10,
-    marginTop: 4,
-  },
-  sceneContent: {
-    backgroundColor: 'rgba(0, 0, 0, 0.8)',
-    padding: 12,
-    paddingHorizontal: 16,
-  },
-  sceneDescription: {
-    color: '#ccc',
-    fontSize: 12,
-    lineHeight: 16,
+    fontSize: 14,
+    fontWeight: '700',
     marginBottom: 8,
   },
-  duration: {
+  sceneGuidance: {
+    color: '#ccc',
+    fontSize: 13,
+    lineHeight: 18,
+    marginBottom: 12,
+    fontWeight: '500',
+  },
+  sceneInstruction: {
+    color: '#fff',
+    fontSize: 14,
+    lineHeight: 20,
+    marginBottom: 8,
+  },
+  sceneDuration: {
     color: '#999',
-    fontSize: 10,
+    fontSize: 12,
+    fontStyle: 'italic',
+  },
+  timerContainer: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 12,
+  },
+  timerText: {
+    color: '#ff4444',
+    fontSize: 32,
+    fontWeight: 'bold',
+    fontVariant: ['tabular-nums'],
   },
   controls: {
-    flexDirection: 'row',
-    justifyContent: 'space-around',
-    alignItems: 'center',
-    paddingVertical: 20,
+    flexDirection: 'column',
+    gap: 12,
     paddingHorizontal: 16,
-    backgroundColor: '#05070b',
   },
   recordButton: {
     backgroundColor: '#2DAEFF',
-    paddingHorizontal: 20,
-    paddingVertical: 10,
-    borderRadius: 6,
+    paddingVertical: 16,
+    borderRadius: 8,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
   },
   recordingActive: {
     backgroundColor: '#ff4444',
   },
+  recordButtonIcon: {
+    fontSize: 20,
+  },
   recordButtonText: {
     color: '#000',
-    fontWeight: '600',
-    fontSize: 13,
+    fontWeight: '700',
+    fontSize: 16,
   },
   renderButton: {
     backgroundColor: '#7A33F5',
-    paddingHorizontal: 16,
-    paddingVertical: 10,
-    borderRadius: 6,
+    paddingVertical: 14,
+    borderRadius: 8,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+  },
+  renderButtonIcon: {
+    fontSize: 18,
   },
   renderButtonText: {
     color: '#fff',
-    fontWeight: '600',
-    fontSize: 13,
+    fontWeight: '700',
+    fontSize: 15,
   },
   backButton: {
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-    borderWidth: 1,
-    borderColor: '#999',
-    borderRadius: 6,
+    paddingVertical: 10,
+    paddingHorizontal: 16,
   },
   backText: {
     color: '#999',
-    fontSize: 12,
+    fontSize: 14,
+    fontWeight: '600',
   },
-  progress: {
-    flexDirection: 'row',
-    justifyContent: 'center',
-    alignItems: 'center',
-    gap: 6,
-    paddingVertical: 16,
-    backgroundColor: '#05070b',
-  },
-  progressDot: {
-    width: 8,
-    height: 8,
+  statusMessage: {
+    backgroundColor: 'rgba(45, 174, 255, 0.2)',
+    borderLeftWidth: 3,
+    borderLeftColor: '#2DAEFF',
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    marginHorizontal: 16,
     borderRadius: 4,
-    backgroundColor: '#2d3e4f',
   },
-  progressDotDone: {
-    backgroundColor: '#2DAEFF',
+  statusText: {
+    color: '#2DAEFF',
+    fontSize: 12,
+    fontWeight: '600',
+  },
+  completeMessage: {
+    backgroundColor: 'rgba(122, 51, 245, 0.2)',
+    borderLeftWidth: 3,
+    borderLeftColor: '#7A33F5',
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    marginHorizontal: 16,
+    borderRadius: 4,
+  },
+  completeText: {
+    color: '#7A33F5',
+    fontSize: 12,
+    fontWeight: '600',
   },
   text: {
     color: '#fff',
