@@ -45,12 +45,13 @@ export async function POST(request: NextRequest) {
       .eq('id', video.user_id)
       .single()
 
-    // Get branding settings
-    const { data: branding } = await supabase
-      .from('branding')
-      .select('*')
-      .limit(1)
-      .single()
+    // Branding settings (hardcoded for MVP - no dashboard save needed)
+    const branding = {
+      logo_url: 'https://8blocks.s3-us-west-1.amazonaws.com/neo/images/logo.png',
+      end_card_text_color: '#FFFFFF',
+      disclaimer_text_color: '#999999',
+      end_card_hold_seconds: 3,
+    }
 
     // Build Shotstack timeline from clips
     const clips = (video.video_clips || []).sort((a: any, b: any) => a.scenes.scene_order - b.scenes.scene_order)
