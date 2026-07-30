@@ -2,8 +2,8 @@ import type { Metadata } from 'next'
 import './globals.css'
 
 export const metadata: Metadata = {
-  title: 'NEO Reels — Admin',
-  description: 'Video content platform for NEO Home Loans',
+  title: 'FinFree Reels — Admin',
+  description: 'Video content platform by FinFree',
 }
 
 export default function RootLayout({

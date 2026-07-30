@@ -35,7 +35,7 @@ export default function LoginPage() {
     <div className="min-h-screen flex items-center justify-center bg-neo-page-bg">
       <div className="w-full max-w-md p-8 bg-white rounded-lg shadow-lg">
         <div className="mb-8">
-          <h1 className="text-3xl font-bold text-neo-navy mb-2">NEO Reels</h1>
+          <h1 className="text-3xl font-bold text-neo-navy mb-2">FinFree Reels</h1>
           <p className="text-neo-body-muted">Admin Portal</p>
         </div>
 
