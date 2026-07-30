@@ -1,52 +1,205 @@
 'use client'
 
-export const dynamic = 'force-dynamic'
+import { useEffect, useState } from 'react'
+import { supabase } from '@/lib/supabase/client'
+
+interface Scene {
+  id?: string
+  kind: 'hook' | 'body' | 'cta'
+  text: string
+  duration_seconds: number
+}
+
+interface Script {
+  id: string
+  title: string
+  slug: string
+  status: 'draft' | 'live' | 'archived'
+  scenes: Scene[]
+  created_at: string
+}
 
 export default function ScriptsPage() {
+  const [scripts, setScripts] = useState<Script[]>([])
+  const [loading, setLoading] = useState(true)
+  const [showForm, setShowForm] = useState(false)
+  const [formData, setFormData] = useState({
+    title: '',
+    slug: '',
+    scenes: [
+      { kind: 'hook' as const, text: '', duration_seconds: 30 },
+      { kind: 'body' as const, text: '', duration_seconds: 60 },
+      { kind: 'cta' as const, text: '', duration_seconds: 15 },
+    ],
+  })
+
+  useEffect(() => {
+    fetchScripts()
+  }, [])
+
+  const fetchScripts = async () => {
+    try {
+      const { data, error } = await supabase.from('scripts').select('*').order('created_at', { ascending: false })
+      if (error) throw error
+      setScripts((data as any[]) || [])
+    } catch (error) {
+      console.error('Error fetching scripts:', error)
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const handleCreateScript = async (e: React.FormEvent) => {
+    e.preventDefault()
+    if (!formData.title || !formData.slug) return
+
+    try {
+      const { data: script, error: scriptError } = await supabase
+        .from('scripts')
+        .insert([
+          {
+            title: formData.title,
+            slug: formData.slug,
+            status: 'draft',
+          },
+        ])
+        .select()
+
+      if (scriptError) throw scriptError
+
+      const scriptId = script[0].id
+      const scenesToInsert = formData.scenes.map((scene, idx) => ({
+        script_id: scriptId,
+        kind: scene.kind,
+        text: scene.text,
+        duration_seconds: scene.duration_seconds,
+        scene_order: idx,
+      }))
+
+      const { error: scenesError } = await supabase.from('scenes').insert(scenesToInsert)
+
+      if (scenesError) throw scenesError
+
+      setFormData({
+        title: '',
+        slug: '',
+        scenes: [
+          { kind: 'hook', text: '', duration_seconds: 30 },
+          { kind: 'body', text: '', duration_seconds: 60 },
+          { kind: 'cta', text: '', duration_seconds: 15 },
+        ],
+      })
+      setShowForm(false)
+      fetchScripts()
+    } catch (error) {
+      console.error('Error creating script:', error)
+    }
+  }
+
+  const updateScene = (idx: number, field: string, value: any) => {
+    const newScenes = [...formData.scenes]
+    newScenes[idx] = { ...newScenes[idx], [field]: value }
+    setFormData({ ...formData, scenes: newScenes })
+  }
+
   return (
     <div>
-      <div className="mb-8">
-        <p className="font-mono text-neo-muted mb-2">SCENE-BASED · ASSIGNABLE</p>
-        <h2 className="text-page-title text-text-light mb-4">Scripts</h2>
-        <div className="flex gap-3">
-          <button className="px-4 py-2 text-gray-100-muted hover:text-gray-100 transition">
-            Generate with AI
-          </button>
-          <button className="px-4 py-2 bg-neo-navy hover:bg-neo-navy-hover text-white rounded-lg transition font-medium">
-            New script
-          </button>
+      <div className="mb-8 flex items-end justify-between">
+        <div>
+          <p className="font-mono text-gray-400 mb-2">ASSIGNABLE CONTENT</p>
+          <h2 className="text-page-title text-text-light mb-2">Scripts</h2>
         </div>
+        <button
+          onClick={() => setShowForm(!showForm)}
+          className="px-4 py-2 bg-gradient-to-r from-primary to-accent hover:from-primary-dark hover:to-accent-light text-white rounded-lg transition font-medium"
+        >
+          {showForm ? 'Cancel' : 'New script'}
+        </button>
       </div>
 
-      <div className="grid grid-cols-2 gap-6">
-        {[1, 2, 3, 4].map((i) => (
-          <div key={i} className="bg-gray-900 rounded-lg border border-gray-800 p-4 hover:border-neo-ink transition cursor-pointer">
-            <div className="flex items-start justify-between mb-3">
-              <h3 className="text-card-title text-text-light font-semibold">Refi breakeven analysis</h3>
-              <span className="px-2 py-1 bg-neo-cyan-tint-bg text-neo-cyan-tint-fg text-xs font-mono font-bold rounded">
-                LIVE
-              </span>
+      {showForm && (
+        <div className="bg-gray-900 rounded-lg border border-gray-800 p-6 mb-8">
+          <form onSubmit={handleCreateScript} className="space-y-6">
+            <div className="grid grid-cols-2 gap-4">
+              <input
+                type="text"
+                placeholder="Script title"
+                value={formData.title}
+                onChange={(e) => setFormData({ ...formData, title: e.target.value })}
+                className="px-3 py-2 bg-gray-800 border border-gray-700 text-text-light rounded-lg focus:outline-none focus:border-primary"
+              />
+              <input
+                type="text"
+                placeholder="URL slug (e.g., refi-breakeven)"
+                value={formData.slug}
+                onChange={(e) => setFormData({ ...formData, slug: e.target.value })}
+                className="px-3 py-2 bg-gray-800 border border-gray-700 text-text-light rounded-lg focus:outline-none focus:border-primary"
+              />
             </div>
 
-            {/* Beat Strip */}
-            <div className="flex gap-1 h-12 mb-4 bg-neo-border rounded overflow-hidden">
-              <div className="flex-1 bg-neo-cyan-tint-bg flex items-center justify-center">
-                <span className="font-mono text-xs text-neo-cyan-tint-fg font-bold">HOOK<br/>8s</span>
-              </div>
-              <div className="flex-1 bg-neo-surface-subtle flex items-center justify-center">
-                <span className="font-mono text-xs text-gray-100-muted font-bold">BODY<br/>16s</span>
-              </div>
-              <div className="flex-1 bg-neo-surface-subtle flex items-center justify-center">
-                <span className="font-mono text-xs text-gray-100-muted font-bold">CTA<br/>8s</span>
-              </div>
+            <div className="space-y-4">
+              <p className="text-sm font-medium text-gray-300">Scenes</p>
+              {formData.scenes.map((scene, idx) => (
+                <div key={idx} className="bg-gray-800 p-4 rounded-lg space-y-3">
+                  <div className="flex items-center justify-between">
+                    <p className="font-mono text-xs text-gray-400 uppercase">{scene.kind}</p>
+                    <input
+                      type="number"
+                      placeholder="Duration (sec)"
+                      value={scene.duration_seconds}
+                      onChange={(e) => updateScene(idx, 'duration_seconds', parseInt(e.target.value))}
+                      className="w-24 px-2 py-1 bg-gray-700 border border-gray-600 text-text-light rounded text-sm"
+                    />
+                  </div>
+                  <textarea
+                    placeholder="Scene text/instructions"
+                    value={scene.text}
+                    onChange={(e) => updateScene(idx, 'text', e.target.value)}
+                    className="w-full px-3 py-2 bg-gray-700 border border-gray-600 text-text-light rounded-lg focus:outline-none focus:border-primary text-sm"
+                    rows={3}
+                  />
+                </div>
+              ))}
             </div>
 
-            <div className="flex items-center justify-between text-xs">
-              <span className="font-mono text-gray-100-muted">6 OFFICERS · 14 VIDEOS</span>
-              <a href="#" className="text-neo-cyan-deep hover:text-neo-cyan-deep-hover">Edit scenes →</a>
-            </div>
-          </div>
-        ))}
+            <button
+              type="submit"
+              className="w-full px-4 py-2 bg-gradient-to-r from-primary to-accent hover:from-primary-dark hover:to-accent-light text-white rounded-lg transition font-medium"
+            >
+              Create script
+            </button>
+          </form>
+        </div>
+      )}
+
+      <div className="bg-gray-900 rounded-lg border border-gray-800 overflow-hidden">
+        <div className="p-4 bg-gray-800 border-b border-gray-800">
+          <p className="font-mono text-sm text-gray-400">
+            {loading ? 'Loading...' : `${scripts.length} SCRIPTS`}
+          </p>
+        </div>
+        <div className="divide-y divide-gray-800">
+          {loading ? (
+            <div className="p-8 text-center text-gray-400">Loading scripts...</div>
+          ) : scripts.length === 0 ? (
+            <div className="p-8 text-center text-gray-400">No scripts yet. Create one above!</div>
+          ) : (
+            scripts.map((script) => (
+              <div key={script.id} className="p-4 hover:bg-gray-800 transition">
+                <div className="flex items-start justify-between mb-2">
+                  <div>
+                    <p className="font-medium text-text-light">{script.title}</p>
+                    <p className="font-mono text-xs text-gray-400">{script.slug}</p>
+                  </div>
+                  <span className="px-2 py-1 bg-primary/20 text-primary text-xs font-mono font-bold rounded">
+                    {script.status.toUpperCase()}
+                  </span>
+                </div>
+                <p className="text-xs text-gray-400">3 scenes</p>
+              </div>
+            ))
+          )}
+        </div>
       </div>
     </div>
   )
