@@ -9,52 +9,14 @@ function getSupabaseClient() {
 }
 
 const LOGO_URL = 'https://8blocks.s3-us-west-1.amazonaws.com/neo/images/logo.png'
-const DISCLAIMER = '© 2026 NEO Home Loans and/or its affiliates. All rights reserved. Equal Housing Lender.'
-const END_CARD_SECONDS = 4
+const DISCLAIMER = '© 2026 NEO Home Loans. All rights reserved. Equal Housing Lender.'
+const END_CARD_SECONDS = 5
 
-// Build an HTML end card as a single Shotstack HTML asset — avoids all positioning conflicts
-function buildEndCardHtml(name: string, title: string, nmls: string, phone: string, email: string) {
-  const titleLine = [title, nmls ? `NMLS# ${nmls}` : ''].filter(Boolean).join(' • ')
-  return `
-<!DOCTYPE html>
-<html>
-<head>
-<meta charset="utf-8">
-<style>
-  * { box-sizing: border-box; margin: 0; padding: 0; }
-  body {
-    width: 720px; height: 1280px;
-    background: #0C2033;
-    font-family: Arial, sans-serif;
-    color: #fff;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: space-between;
-    padding: 80px 60px 60px;
-  }
-  .logo { width: 160px; }
-  .info { text-align: center; flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 10px; }
-  .name { font-size: 38px; font-weight: 700; color: #fff; }
-  .title { font-size: 22px; color: #a0b4c8; }
-  .contact { font-size: 20px; color: #c0d0dc; margin-top: 6px; }
-  .disclaimer { font-size: 11px; color: #4a6070; text-align: center; line-height: 1.4; }
-  .ehl { width: 28px; margin-bottom: 6px; }
-</style>
-</head>
-<body>
-  <img class="logo" src="${LOGO_URL}" />
-  <div class="info">
-    <div class="name">${name}</div>
-    ${titleLine ? `<div class="title">${titleLine}</div>` : ''}
-    ${phone ? `<div class="contact">${phone}</div>` : ''}
-    ${email ? `<div class="contact">${email}</div>` : ''}
-  </div>
-  <div>
-    <div class="disclaimer">${DISCLAIMER}</div>
-  </div>
-</body>
-</html>`.trim()
+// Shotstack portrait output — 720×1280 @ 30fps
+const OUTPUT = {
+  format: 'mp4',
+  fps: 30,
+  size: { width: 720, height: 1280 },
 }
 
 export async function POST(request: NextRequest) {
@@ -67,7 +29,6 @@ export async function POST(request: NextRequest) {
     const supabase = getSupabaseClient()
     const shotStackApiKey = process.env.SHOTSTACK_API_KEY
     const shotStackUrl = process.env.SHOTSTACK_API_URL
-
     if (!shotStackApiKey || !shotStackUrl) throw new Error('Missing Shotstack credentials')
 
     const { data: video, error: videoError } = await supabase
@@ -84,93 +45,149 @@ export async function POST(request: NextRequest) {
       .eq('id', video.user_id)
       .single()
 
-    // Sort clips by scene order
-    const clips = (video.video_clips || []).sort(
-      (a: any, b: any) => (a.scenes?.scene_order ?? 0) - (b.scenes?.scene_order ?? 0)
-    )
+    // Sort by scene order
+    const clips = ((video.video_clips as any[]) || [])
+      .filter((c: any) => c.clip_url)
+      .sort((a: any, b: any) => (a.scenes?.scene_order ?? 0) - (b.scenes?.scene_order ?? 0))
 
     if (clips.length === 0) throw new Error('No clips found for this video')
 
-    // Build main video track — chain clips sequentially
+    // ── Main video track ─────────────────────────────────────────────────────
     let cursor = 0
     const videoClips: any[] = []
     const captionClips: any[] = []
 
     for (const clip of clips) {
-      if (!clip.clip_url) continue
+      const duration: number = clip.duration_seconds || 10 // fallback 10s if not stored
+      const start = Math.round(cursor * 100) / 100
+      const length = Math.round(duration * 100) / 100
 
-      // Use actual recorded duration — never fall back to a hardcoded value
-      const rawDuration: number = clip.duration_seconds
-      if (!rawDuration || rawDuration <= 0) {
-        console.warn(`Clip ${clip.id} has no duration_seconds, skipping`)
-        continue
-      }
-
-      const speechStart: number = clip.speech_start_seconds ?? 0
-      const speechEnd: number = clip.speech_end_seconds ?? rawDuration
-
-      // Only trim silence if speech starts more than 0.08s in
-      const trimIn = speechStart > 0.08 ? Math.max(0, speechStart - 0.05) : 0
-      const trimmedEnd = clip.speech_end_seconds ? speechEnd + 0.05 : rawDuration
-      const clipDuration = Math.max(0.5, trimmedEnd - trimIn)
-
-      const videoClip: any = {
+      videoClips.push({
         asset: { type: 'video', src: clip.clip_url },
-        start: Math.round(cursor * 1000) / 1000,
-        length: Math.round(clipDuration * 1000) / 1000,
-      }
-      if (trimIn > 0) videoClip.asset.trim = Math.round(trimIn * 1000) / 1000
+        start,
+        length,
+        fit: 'cover',
+      })
 
-      videoClips.push(videoClip)
-
-      // Caption — uppercase, shown for duration of the clip
-      const transcript: string = clip.transcript_text || ''
-      if (transcript.trim()) {
-        const safe = transcript.toUpperCase().replace(/</g, '&lt;').replace(/>/g, '&gt;')
+      // Caption using native Shotstack title asset (works on all plans)
+      const transcript: string = (clip.transcript_text || '').trim()
+      if (transcript) {
         captionClips.push({
           asset: {
-            type: 'html',
-            html: `<html><body style="margin:0;padding:0;display:flex;align-items:flex-end;justify-content:center;width:720px;height:1280px;"><div style="background:rgba(0,0,0,0.65);color:#fff;font-family:Arial,sans-serif;font-size:30px;font-weight:700;line-height:1.35;text-align:center;padding:16px 28px;border-radius:10px;margin-bottom:90px;width:660px;word-break:break-word;letter-spacing:0.03em;">${safe}</div></body></html>`,
-            width: 720,
-            height: 1280,
-            background: 'transparent',
+            type: 'title',
+            text: transcript.toUpperCase(),
+            style: 'future',        // clean sans-serif, white on transparent
+            color: '#ffffff',
+            size: 'small',
+            background: '#000000',  // black pill behind text
+            position: 'bottom',
           },
-          start: Math.round(cursor * 1000) / 1000,
-          length: Math.round(clipDuration * 1000) / 1000,
+          start,
+          length,
+          position: 'bottom',
+          offset: { x: 0, y: 0.12 }, // pull up from very bottom
         })
       }
 
-      cursor += clipDuration
+      cursor += duration
     }
 
-    if (videoClips.length === 0) throw new Error('No valid clips to render')
+    // ── End card track ────────────────────────────────────────────────────────
+    // Navy background block
+    const endStart = Math.round(cursor * 100) / 100
+    const endCardClips: any[] = []
 
-    // End card — placed immediately after last clip
-    const endCardHtml = buildEndCardHtml(
-      user?.full_name || 'Loan Officer',
-      user?.title_on_end_card || '',
-      user?.nmls_number || '',
-      user?.direct_phone || '',
-      user?.work_email || ''
-    )
-
-    const endCardStart = Math.round(cursor * 1000) / 1000
-    const endCardClip = {
-      asset: {
-        type: 'html',
-        html: endCardHtml,
-        width: 720,
-        height: 1280,
-        background: '#0C2033',
-      },
-      start: endCardStart,
+    endCardClips.push({
+      asset: { type: 'color', color: '#0C2033' },
+      start: endStart,
       length: END_CARD_SECONDS,
+    })
+
+    // NEO logo
+    endCardClips.push({
+      asset: { type: 'image', src: LOGO_URL },
+      start: endStart,
+      length: END_CARD_SECONDS,
+      position: 'top',
+      offset: { x: 0, y: -0.1 },
+      scale: 0.25,
+    })
+
+    // Officer name
+    const name = user?.full_name || 'Loan Officer'
+    endCardClips.push({
+      asset: {
+        type: 'title',
+        text: name,
+        style: 'future',
+        color: '#ffffff',
+        size: 'large',
+      },
+      start: endStart,
+      length: END_CARD_SECONDS,
+      position: 'center',
+      offset: { x: 0, y: 0.08 },
+    })
+
+    // Title + NMLS line
+    const titleNmls = [
+      user?.title_on_end_card,
+      user?.nmls_number ? `NMLS# ${user.nmls_number}` : null,
+    ].filter(Boolean).join('  •  ')
+
+    if (titleNmls) {
+      endCardClips.push({
+        asset: {
+          type: 'title',
+          text: titleNmls,
+          style: 'future',
+          color: '#a0b4c8',
+          size: 'small',
+        },
+        start: endStart,
+        length: END_CARD_SECONDS,
+        position: 'center',
+        offset: { x: 0, y: -0.02 },
+      })
     }
 
-    // Track order matters: video first, end card on its own track, captions on top
+    // Phone + email
+    const contact = [user?.direct_phone, user?.work_email].filter(Boolean).join('   ')
+    if (contact) {
+      endCardClips.push({
+        asset: {
+          type: 'title',
+          text: contact,
+          style: 'future',
+          color: '#c0d0dc',
+          size: 'x-small',
+        },
+        start: endStart,
+        length: END_CARD_SECONDS,
+        position: 'center',
+        offset: { x: 0, y: -0.1 },
+      })
+    }
+
+    // Disclaimer
+    endCardClips.push({
+      asset: {
+        type: 'title',
+        text: DISCLAIMER,
+        style: 'future',
+        color: '#4a6070',
+        size: 'xx-small',
+      },
+      start: endStart,
+      length: END_CARD_SECONDS,
+      position: 'bottom',
+      offset: { x: 0, y: 0.05 },
+    })
+
+    // ── Assemble tracks ───────────────────────────────────────────────────────
     const tracks: any[] = [
       { clips: videoClips },
-      { clips: [endCardClip] },
+      { clips: endCardClips },
     ]
     if (captionClips.length > 0) tracks.push({ clips: captionClips })
 
@@ -179,25 +196,22 @@ export async function POST(request: NextRequest) {
       tracks,
     }
 
+    // Log payload for debugging
+    console.log('Shotstack payload:', JSON.stringify({ timeline, output: OUTPUT }, null, 2))
+
     const shotStackResponse = await fetch(shotStackUrl, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
         'x-api-key': shotStackApiKey,
       },
-      body: JSON.stringify({
-        timeline,
-        output: {
-          format: 'mp4',
-          resolution: 'sd',    // 720×1280 portrait (SD vertical)
-          aspectRatio: '9:16',
-          fps: 30,
-        },
-      }),
+      body: JSON.stringify({ timeline, output: OUTPUT }),
     })
 
     if (!shotStackResponse.ok) {
-      throw new Error('Shotstack API error: ' + (await shotStackResponse.text()))
+      const errText = await shotStackResponse.text()
+      console.error('Shotstack error:', errText)
+      throw new Error('Shotstack API error: ' + errText)
     }
 
     const shotStackData = await shotStackResponse.json()
@@ -208,7 +222,7 @@ export async function POST(request: NextRequest) {
       .update({ render_job_id: renderId, status: 'rendering', updated_at: new Date().toISOString() })
       .eq('id', videoId)
 
-    return NextResponse.json({ renderId, videoId })
+    return NextResponse.json({ renderId, videoId, clipCount: videoClips.length })
   } catch (error: any) {
     console.error('Render error:', error)
     return NextResponse.json({ error: error.message || 'Render failed' }, { status: 500 })
