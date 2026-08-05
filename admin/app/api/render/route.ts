@@ -89,49 +89,63 @@ export async function POST(request: NextRequest) {
       (a: any, b: any) => (a.scenes?.scene_order ?? 0) - (b.scenes?.scene_order ?? 0)
     )
 
-    // Build main video track — chain clips sequentially with speech trimming
+    if (clips.length === 0) throw new Error('No clips found for this video')
+
+    // Build main video track — chain clips sequentially
     let cursor = 0
     const videoClips: any[] = []
     const captionClips: any[] = []
 
     for (const clip of clips) {
-      const rawDuration = clip.duration_seconds || 5
+      if (!clip.clip_url) continue
+
+      // Use actual recorded duration — never fall back to a hardcoded value
+      const rawDuration: number = clip.duration_seconds
+      if (!rawDuration || rawDuration <= 0) {
+        console.warn(`Clip ${clip.id} has no duration_seconds, skipping`)
+        continue
+      }
+
       const speechStart: number = clip.speech_start_seconds ?? 0
       const speechEnd: number = clip.speech_end_seconds ?? rawDuration
 
-      // Only trim silence if speech starts more than 0.08s in (avoids black-frame bug on near-zero values)
-      const trimIn = speechStart > 0.08 ? speechStart - 0.05 : 0
-      const clipDuration = Math.max(0.5, (speechEnd + 0.05) - trimIn)
+      // Only trim silence if speech starts more than 0.08s in
+      const trimIn = speechStart > 0.08 ? Math.max(0, speechStart - 0.05) : 0
+      const trimmedEnd = clip.speech_end_seconds ? speechEnd + 0.05 : rawDuration
+      const clipDuration = Math.max(0.5, trimmedEnd - trimIn)
 
       const videoClip: any = {
         asset: { type: 'video', src: clip.clip_url },
-        start: cursor,
-        length: clipDuration,
+        start: Math.round(cursor * 1000) / 1000,
+        length: Math.round(clipDuration * 1000) / 1000,
       }
-      if (trimIn > 0) videoClip.asset.trim = trimIn
+      if (trimIn > 0) videoClip.asset.trim = Math.round(trimIn * 1000) / 1000
 
       videoClips.push(videoClip)
 
-      // Caption for this clip if transcript text is available
+      // Caption — uppercase, shown for duration of the clip
       const transcript: string = clip.transcript_text || ''
       if (transcript.trim()) {
+        const safe = transcript.toUpperCase().replace(/</g, '&lt;').replace(/>/g, '&gt;')
         captionClips.push({
           asset: {
             type: 'html',
-            html: `<html><body style="margin:0;padding:0;display:flex;align-items:flex-end;justify-content:center;width:720px;height:1280px;"><div style="background:rgba(0,0,0,0.62);color:#fff;font-family:Arial,sans-serif;font-size:32px;font-weight:600;line-height:1.35;text-align:center;padding:14px 24px;border-radius:10px;margin-bottom:80px;width:660px;word-break:break-word;">${transcript.replace(/</g, '&lt;').replace(/>/g, '&gt;')}</div></body></html>`,
+            html: `<html><body style="margin:0;padding:0;display:flex;align-items:flex-end;justify-content:center;width:720px;height:1280px;"><div style="background:rgba(0,0,0,0.65);color:#fff;font-family:Arial,sans-serif;font-size:30px;font-weight:700;line-height:1.35;text-align:center;padding:16px 28px;border-radius:10px;margin-bottom:90px;width:660px;word-break:break-word;letter-spacing:0.03em;">${safe}</div></body></html>`,
             width: 720,
             height: 1280,
             background: 'transparent',
           },
-          start: cursor,
-          length: clipDuration,
+          start: Math.round(cursor * 1000) / 1000,
+          length: Math.round(clipDuration * 1000) / 1000,
         })
       }
 
       cursor += clipDuration
     }
 
-    // End card as single HTML clip
+    if (videoClips.length === 0) throw new Error('No valid clips to render')
+
+    // End card — placed immediately after last clip
     const endCardHtml = buildEndCardHtml(
       user?.full_name || 'Loan Officer',
       user?.title_on_end_card || '',
@@ -140,6 +154,7 @@ export async function POST(request: NextRequest) {
       user?.work_email || ''
     )
 
+    const endCardStart = Math.round(cursor * 1000) / 1000
     const endCardClip = {
       asset: {
         type: 'html',
@@ -148,11 +163,15 @@ export async function POST(request: NextRequest) {
         height: 1280,
         background: '#0C2033',
       },
-      start: cursor,
+      start: endCardStart,
       length: END_CARD_SECONDS,
     }
 
-    const tracks: any[] = [{ clips: videoClips }, { clips: [endCardClip] }]
+    // Track order matters: video first, end card on its own track, captions on top
+    const tracks: any[] = [
+      { clips: videoClips },
+      { clips: [endCardClip] },
+    ]
     if (captionClips.length > 0) tracks.push({ clips: captionClips })
 
     const timeline = {

@@ -36,6 +36,8 @@ export default function RecordingScreen() {
   const [loading, setLoading] = useState(true)
   const [recordedScenes, setRecordedScenes] = useState<Set<number>>(new Set())
   const [recordingTime, setRecordingTime] = useState(0)
+  const [videoId, setVideoId] = useState<string | null>(null)
+  const recordingStartRef = useRef<number>(0)
   const cameraRef = useRef<CameraView>(null)
   const recordingIntervalRef = useRef<NodeJS.Timeout | null>(null)
   const { user, signOut } = useAuth()
@@ -132,6 +134,7 @@ export default function RecordingScreen() {
                   setSelectedScript(script)
                   setCurrentSceneIdx(0)
                   setRecordedScenes(new Set())
+                  setVideoId(null)
                 }}
               >
                 <View style={styles.scriptCardHeader}>
@@ -163,14 +166,14 @@ export default function RecordingScreen() {
 
   const startRecording = async () => {
     if (!cameraRef.current) return
-
     try {
       setRecording(true)
-      const video = await cameraRef.current.recordAsync()
+      recordingStartRef.current = Date.now()
+      const recorded = await cameraRef.current.recordAsync()
+      const durationSeconds = (Date.now() - recordingStartRef.current) / 1000
       setRecording(false)
-
-      if (video?.uri) {
-        await uploadSceneClip(video.uri, currentScene)
+      if (recorded?.uri) {
+        await uploadSceneClip(recorded.uri, currentScene, durationSeconds)
       }
     } catch (error) {
       setRecording(false)
@@ -178,69 +181,102 @@ export default function RecordingScreen() {
     }
   }
 
-  const stopRecording = async () => {
-    if (cameraRef.current) {
-      cameraRef.current.stopRecording()
-    }
+  const stopRecording = () => {
+    cameraRef.current?.stopRecording()
   }
 
-  const uploadSceneClip = async (uri: string, scene: Scene) => {
+  // Ensure a videos row exists and return its id
+  const ensureVideoRecord = async (): Promise<string> => {
+    if (videoId) return videoId
+    const { data, error } = await supabase
+      .from('videos')
+      .insert({
+        user_id: user?.id,
+        script_id: selectedScript!.id,
+        status: 'recording',
+      })
+      .select('id')
+      .single()
+    if (error || !data) throw new Error('Could not create video record: ' + error?.message)
+    setVideoId(data.id)
+    return data.id
+  }
+
+  const uploadSceneClip = async (uri: string, scene: Scene, durationSeconds: number) => {
     try {
       setUploading(true)
 
-      // Create video record if it doesn't exist
-      let videoId = selectedScript.id
+      const vid = await ensureVideoRecord()
 
       const base64 = await FileSystem.readAsStringAsync(uri, {
         encoding: FileSystem.EncodingType.Base64,
       })
 
-      const clipFileName = `${videoId}/${scene.id}-${currentSceneIdx}.mp4`
+      const clipFileName = `${vid}/${scene.id}.mp4`
 
+      // upsert so re-recording a scene replaces the old clip
       const { error: uploadError } = await supabase.storage
         .from('video-clips')
         .upload(clipFileName, Buffer.from(base64, 'base64'), {
           contentType: 'video/mp4',
+          upsert: true,
         })
-
       if (uploadError) throw uploadError
 
-      // Mark scene as recorded
+      const { data: urlData } = supabase.storage
+        .from('video-clips')
+        .getPublicUrl(clipFileName)
+      const clipUrl = urlData.publicUrl
+
+      // Upsert the video_clips row with real duration and URL
+      const { error: clipError } = await supabase
+        .from('video_clips')
+        .upsert({
+          video_id: vid,
+          scene_id: scene.id,
+          clip_url: clipUrl,
+          duration_seconds: Math.round(durationSeconds * 100) / 100,
+        }, { onConflict: 'video_id,scene_id' })
+      if (clipError) throw clipError
+
       const newRecorded = new Set(recordedScenes)
       newRecorded.add(currentSceneIdx)
       setRecordedScenes(newRecorded)
 
-      Alert.alert('Scene recorded!', 'Moving to next scene...')
-
-      // Move to next scene or show render option
-      if (currentSceneIdx < selectedScript.scenes.length - 1) {
+      if (currentSceneIdx < selectedScript!.scenes.length - 1) {
         setCurrentSceneIdx(currentSceneIdx + 1)
-      } else {
-        Alert.alert('All scenes recorded!', 'Ready to render your video')
       }
     } catch (error: any) {
-      Alert.alert('Upload Failed', error.message || 'Failed to upload video')
+      Alert.alert('Upload Failed', error.message || 'Failed to upload clip')
     } finally {
       setUploading(false)
     }
   }
 
   const handleRender = async () => {
+    if (!videoId) {
+      Alert.alert('Error', 'No video session found. Please re-record.')
+      return
+    }
     try {
       setUploading(true)
-      // Call render API to send clips to Shotstack
+      // Update video status to awaiting render
+      await supabase.from('videos').update({ status: 'awaiting_render' }).eq('id', videoId)
+
       const response = await fetch('/api/render', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ videoId: selectedScript.id }),
+        body: JSON.stringify({ videoId }),
       })
-
-      if (!response.ok) throw new Error('Render request failed')
-
-      Alert.alert('Rendering started', 'Check Videos page to monitor progress')
+      if (!response.ok) {
+        const err = await response.json()
+        throw new Error(err.error || 'Render request failed')
+      }
+      Alert.alert('Rendering started!', 'Your video will be ready in about a minute.')
       setSelectedScript(null)
       setCurrentSceneIdx(0)
       setRecordedScenes(new Set())
+      setVideoId(null)
     } catch (error: any) {
       Alert.alert('Error', error.message || 'Failed to start rendering')
     } finally {
