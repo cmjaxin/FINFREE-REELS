@@ -12,6 +12,11 @@ const LOGO_URL = 'https://8blocks.s3-us-west-1.amazonaws.com/neo/images/logo.png
 const DISCLAIMER = '© 2026 NEO Home Loans. All rights reserved. Equal Housing Lender.'
 const END_CARD_SECONDS = 5
 
+// Trim first 0.1s from every clip — removes camera-init black frames
+const CLIP_TRIM_START = 0.1
+// Add 0.3s to every clip length — ensures last frame isn't cut early
+const CLIP_END_BUFFER = 0.3
+
 // Shotstack portrait output — 720×1280 @ 30fps
 const OUTPUT = {
   format: 'mp4',
@@ -58,130 +63,132 @@ export async function POST(request: NextRequest) {
     const captionClips: any[] = []
 
     for (const clip of clips) {
-      const duration: number = clip.duration_seconds || 10 // fallback 10s if not stored
+      const rawDuration: number = clip.duration_seconds || 10
       const start = Math.round(cursor * 100) / 100
-      const length = Math.round(duration * 100) / 100
+      // Trim 0.1s from start, add 0.3s buffer at end so nothing gets clipped
+      const length = Math.round(Math.max(0.5, rawDuration - CLIP_TRIM_START + CLIP_END_BUFFER) * 100) / 100
 
       videoClips.push({
-        asset: { type: 'video', src: clip.clip_url },
+        asset: {
+          type: 'video',
+          src: clip.clip_url,
+          trim: CLIP_TRIM_START, // skip first 0.1s of every clip
+        },
         start,
         length,
         fit: 'cover',
       })
 
-      // Caption using native Shotstack title asset (works on all plans)
       const transcript: string = (clip.transcript_text || '').trim()
       if (transcript) {
         captionClips.push({
           asset: {
             type: 'title',
             text: transcript.toUpperCase(),
-            style: 'future',        // clean sans-serif, white on transparent
+            style: 'minimal',
             color: '#ffffff',
             size: 'small',
-            background: '#000000',  // black pill behind text
-            position: 'bottom',
+            background: '#000000',
           },
           start,
           length,
           position: 'bottom',
-          offset: { x: 0, y: 0.12 }, // pull up from very bottom
+          offset: { x: 0, y: 0.1 },
         })
       }
 
-      cursor += duration
+      cursor += length
     }
 
     // ── End card track ────────────────────────────────────────────────────────
-    // Navy background block
     const endStart = Math.round(cursor * 100) / 100
     const endCardClips: any[] = []
 
+    // Navy background
     endCardClips.push({
       asset: { type: 'color', color: '#0C2033' },
       start: endStart,
       length: END_CARD_SECONDS,
     })
 
-    // NEO logo
+    // Logo — small, top-center
     endCardClips.push({
       asset: { type: 'image', src: LOGO_URL },
       start: endStart,
       length: END_CARD_SECONDS,
       position: 'top',
-      offset: { x: 0, y: -0.1 },
-      scale: 0.25,
+      offset: { x: 0, y: -0.2 },
+      scale: 0.18,
     })
 
-    // Officer name
-    const name = user?.full_name || 'Loan Officer'
+    // Name — large, centered slightly above middle
     endCardClips.push({
       asset: {
         type: 'title',
-        text: name,
-        style: 'future',
+        text: user?.full_name || 'Loan Officer',
+        style: 'minimal',
         color: '#ffffff',
         size: 'large',
       },
       start: endStart,
       length: END_CARD_SECONDS,
       position: 'center',
-      offset: { x: 0, y: 0.08 },
+      offset: { x: 0, y: 0.06 },
     })
 
-    // Title + NMLS line
+    // Title + NMLS — one line, below name
     const titleNmls = [
       user?.title_on_end_card,
       user?.nmls_number ? `NMLS# ${user.nmls_number}` : null,
-    ].filter(Boolean).join('  •  ')
+    ].filter(Boolean).join(' • ')
 
     if (titleNmls) {
       endCardClips.push({
         asset: {
           type: 'title',
           text: titleNmls,
-          style: 'future',
+          style: 'minimal',
           color: '#a0b4c8',
-          size: 'small',
+          size: 'x-small',
         },
         start: endStart,
         length: END_CARD_SECONDS,
         position: 'center',
-        offset: { x: 0, y: -0.02 },
+        offset: { x: 0, y: -0.01 },
       })
     }
 
-    // Phone + email
-    const contact = [user?.direct_phone, user?.work_email].filter(Boolean).join('   ')
+    // Phone + email — below title
+    const contact = [user?.direct_phone, user?.work_email].filter(Boolean).join('  |  ')
     if (contact) {
       endCardClips.push({
         asset: {
           type: 'title',
           text: contact,
-          style: 'future',
+          style: 'minimal',
           color: '#c0d0dc',
           size: 'x-small',
         },
         start: endStart,
         length: END_CARD_SECONDS,
         position: 'center',
-        offset: { x: 0, y: -0.1 },
+        offset: { x: 0, y: -0.08 },
       })
     }
 
-    // Disclaimer
+    // Disclaimer — bottom
     endCardClips.push({
       asset: {
         type: 'title',
         text: DISCLAIMER,
-        style: 'future',
+        style: 'minimal',
         color: '#4a6070',
         size: 'xx-small',
       },
       start: endStart,
       length: END_CARD_SECONDS,
       position: 'bottom',
-      offset: { x: 0, y: 0.05 },
+      offset: { x: 0, y: 0.04 },
     })
 
     // ── Assemble tracks ───────────────────────────────────────────────────────
