@@ -4,12 +4,57 @@ import { createClient } from '@supabase/supabase-js'
 function getSupabaseClient() {
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
   const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
-
-  if (!supabaseUrl || !supabaseKey) {
-    throw new Error('Missing Supabase credentials')
-  }
-
+  if (!supabaseUrl || !supabaseKey) throw new Error('Missing Supabase credentials')
   return createClient(supabaseUrl, supabaseKey)
+}
+
+const LOGO_URL = 'https://8blocks.s3-us-west-1.amazonaws.com/neo/images/logo.png'
+const DISCLAIMER = '© 2026 NEO Home Loans and/or its affiliates. All rights reserved. Equal Housing Lender.'
+const END_CARD_SECONDS = 4
+
+// Build an HTML end card as a single Shotstack HTML asset — avoids all positioning conflicts
+function buildEndCardHtml(name: string, title: string, nmls: string, phone: string, email: string) {
+  const titleLine = [title, nmls ? `NMLS# ${nmls}` : ''].filter(Boolean).join(' • ')
+  return `
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    width: 720px; height: 1280px;
+    background: #0C2033;
+    font-family: Arial, sans-serif;
+    color: #fff;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: space-between;
+    padding: 80px 60px 60px;
+  }
+  .logo { width: 160px; }
+  .info { text-align: center; flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 10px; }
+  .name { font-size: 38px; font-weight: 700; color: #fff; }
+  .title { font-size: 22px; color: #a0b4c8; }
+  .contact { font-size: 20px; color: #c0d0dc; margin-top: 6px; }
+  .disclaimer { font-size: 11px; color: #4a6070; text-align: center; line-height: 1.4; }
+  .ehl { width: 28px; margin-bottom: 6px; }
+</style>
+</head>
+<body>
+  <img class="logo" src="${LOGO_URL}" />
+  <div class="info">
+    <div class="name">${name}</div>
+    ${titleLine ? `<div class="title">${titleLine}</div>` : ''}
+    ${phone ? `<div class="contact">${phone}</div>` : ''}
+    ${email ? `<div class="contact">${email}</div>` : ''}
+  </div>
+  <div>
+    <div class="disclaimer">${DISCLAIMER}</div>
+  </div>
+</body>
+</html>`.trim()
 }
 
 export async function POST(request: NextRequest) {
@@ -17,19 +62,14 @@ export async function POST(request: NextRequest) {
     const body = await request.json()
     const { videoId } = body
 
-    if (!videoId) {
-      return NextResponse.json({ error: 'videoId required' }, { status: 400 })
-    }
+    if (!videoId) return NextResponse.json({ error: 'videoId required' }, { status: 400 })
 
     const supabase = getSupabaseClient()
     const shotStackApiKey = process.env.SHOTSTACK_API_KEY
     const shotStackUrl = process.env.SHOTSTACK_API_URL
 
-    if (!shotStackApiKey || !shotStackUrl) {
-      throw new Error('Missing Shotstack credentials')
-    }
+    if (!shotStackApiKey || !shotStackUrl) throw new Error('Missing Shotstack credentials')
 
-    // Get video and clips
     const { data: video, error: videoError } = await supabase
       .from('videos')
       .select('*, video_clips(*, scenes(*))')
@@ -38,129 +78,89 @@ export async function POST(request: NextRequest) {
 
     if (videoError || !video) throw new Error('Video not found')
 
-    // Get officer info
     const { data: user } = await supabase
       .from('users')
       .select('*')
       .eq('id', video.user_id)
       .single()
 
-    // Branding settings (hardcoded for MVP)
-    const branding = {
-      logo_url: 'https://8blocks.s3-us-west-1.amazonaws.com/neo/images/logo.png',
-      disclaimer_text: '© 2026 Better Home & Finance Holding Company and/or its affiliates. Better is a family of companies. Better Mortgage Corporation provides home loans; Better Real Estate, LLC and Better Real Estate California Inc License # 02164055 provides real estate services; Better Cover, LLC sells insurance products; and Better Settlement Services provides title insurance services; and Better Inspect, LLC provides home inspection services. All rights reserved.',
-      end_card_text_color: '#FFFFFF',
-      disclaimer_text_color: '#999999',
-      end_card_hold_seconds: 3,
+    // Sort clips by scene order
+    const clips = (video.video_clips || []).sort(
+      (a: any, b: any) => (a.scenes?.scene_order ?? 0) - (b.scenes?.scene_order ?? 0)
+    )
+
+    // Build main video track — chain clips sequentially with speech trimming
+    let cursor = 0
+    const videoClips: any[] = []
+    const captionClips: any[] = []
+
+    for (const clip of clips) {
+      const rawDuration = clip.duration_seconds || 5
+      const speechStart: number = clip.speech_start_seconds ?? 0
+      const speechEnd: number = clip.speech_end_seconds ?? rawDuration
+
+      // Only trim silence if speech starts more than 0.08s in (avoids black-frame bug on near-zero values)
+      const trimIn = speechStart > 0.08 ? speechStart - 0.05 : 0
+      const clipDuration = Math.max(0.5, (speechEnd + 0.05) - trimIn)
+
+      const videoClip: any = {
+        asset: { type: 'video', src: clip.clip_url },
+        start: cursor,
+        length: clipDuration,
+      }
+      if (trimIn > 0) videoClip.asset.trim = trimIn
+
+      videoClips.push(videoClip)
+
+      // Caption for this clip if transcript text is available
+      const transcript: string = clip.transcript_text || ''
+      if (transcript.trim()) {
+        captionClips.push({
+          asset: {
+            type: 'html',
+            html: `<html><body style="margin:0;padding:0;display:flex;align-items:flex-end;justify-content:center;width:720px;height:1280px;"><div style="background:rgba(0,0,0,0.62);color:#fff;font-family:Arial,sans-serif;font-size:32px;font-weight:600;line-height:1.35;text-align:center;padding:14px 24px;border-radius:10px;margin-bottom:80px;width:660px;word-break:break-word;">${transcript.replace(/</g, '&lt;').replace(/>/g, '&gt;')}</div></body></html>`,
+            width: 720,
+            height: 1280,
+            background: 'transparent',
+          },
+          start: cursor,
+          length: clipDuration,
+        })
+      }
+
+      cursor += clipDuration
     }
 
-    // Build Shotstack timeline from clips
-    const clips = (video.video_clips || []).sort((a: any, b: any) => a.scenes.scene_order - b.scenes.scene_order)
+    // End card as single HTML clip
+    const endCardHtml = buildEndCardHtml(
+      user?.full_name || 'Loan Officer',
+      user?.title_on_end_card || '',
+      user?.nmls_number || '',
+      user?.direct_phone || '',
+      user?.work_email || ''
+    )
 
-    const timeline: any = {
-      background: { color: '#000000' },
-      tracks: [
-        {
-          clips: clips.map((clip: any) => ({
-            type: 'video',
-            asset: {
-              type: 'video',
-              src: clip.clip_url,
-            },
-            length: clip.duration_seconds || 5,
-          })),
-        },
-      ],
-    }
-
-    // Build end card with officer info
-    const endCardClips: any[] = []
-
-    // Logo at top
-    endCardClips.push({
-      type: 'image',
+    const endCardClip = {
       asset: {
-        type: 'image',
-        src: branding.logo_url,
+        type: 'html',
+        html: endCardHtml,
+        width: 720,
+        height: 1280,
+        background: '#0C2033',
       },
-      position: 'top-center',
-      scale: 0.3,
-      offsetY: 20,
-      length: branding.end_card_hold_seconds,
-    })
-
-    // Officer name
-    endCardClips.push({
-      type: 'title',
-      text: user?.full_name || 'Officer',
-      style: 'bold',
-      color: branding.end_card_text_color,
-      size: 'large',
-      position: 'top-left',
-      length: branding.end_card_hold_seconds,
-    })
-
-    // Title and NMLS
-    if (user?.title_on_end_card || user?.nmls_number) {
-      endCardClips.push({
-        type: 'title',
-        text: `${user?.title_on_end_card || ''} ${user?.nmls_number ? `• NMLS #${user.nmls_number}` : ''}`.trim(),
-        style: 'normal',
-        color: branding.end_card_text_color,
-        size: 'small',
-        position: 'top-left',
-        offsetY: 40,
-        length: branding.end_card_hold_seconds,
-      })
+      start: cursor,
+      length: END_CARD_SECONDS,
     }
 
-    // Phone
-    if (user?.direct_phone) {
-      endCardClips.push({
-        type: 'title',
-        text: user.direct_phone,
-        style: 'normal',
-        color: branding.disclaimer_text_color,
-        size: 'small',
-        position: 'bottom-left',
-        length: branding.end_card_hold_seconds,
-      })
+    const tracks: any[] = [{ clips: videoClips }, { clips: [endCardClip] }]
+    if (captionClips.length > 0) tracks.push({ clips: captionClips })
+
+    const timeline = {
+      background: { color: '#000000' },
+      tracks,
     }
 
-    // Email
-    if (user?.work_email) {
-      endCardClips.push({
-        type: 'title',
-        text: user.work_email,
-        style: 'normal',
-        color: branding.disclaimer_text_color,
-        size: 'small',
-        position: 'bottom-left',
-        offsetY: -20,
-        length: branding.end_card_hold_seconds,
-      })
-    }
-
-    // Disclaimer
-    endCardClips.push({
-      type: 'title',
-      text: branding.disclaimer_text,
-      style: 'normal',
-      color: branding.disclaimer_text_color,
-      size: 'xsmall',
-      position: 'bottom-center',
-      length: branding.end_card_hold_seconds,
-    })
-
-    // Add end card track
-    if (endCardClips.length > 0) {
-      timeline.tracks.push({
-        clips: endCardClips,
-      })
-    }
-
-    // Send to Shotstack
-    const shotStackResponse = await fetch(`${shotStackUrl}`, {
+    const shotStackResponse = await fetch(shotStackUrl, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -170,7 +170,9 @@ export async function POST(request: NextRequest) {
         timeline,
         output: {
           format: 'mp4',
-          resolution: '1920x1080',
+          resolution: 'sd',    // 720×1280 portrait (SD vertical)
+          aspectRatio: '9:16',
+          fps: 30,
         },
       }),
     })
@@ -180,15 +182,12 @@ export async function POST(request: NextRequest) {
     }
 
     const shotStackData = await shotStackResponse.json()
-    const renderId = shotStackData.response.id
+    const renderId = shotStackData.response?.id
 
-    // Update video with render job ID
-    const { error: updateError } = await supabase
+    await supabase
       .from('videos')
       .update({ render_job_id: renderId, status: 'rendering', updated_at: new Date().toISOString() })
       .eq('id', videoId)
-
-    if (updateError) throw updateError
 
     return NextResponse.json({ renderId, videoId })
   } catch (error: any) {
