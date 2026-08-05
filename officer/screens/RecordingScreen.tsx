@@ -216,7 +216,7 @@ export default function RecordingScreen() {
 
       // upsert so re-recording a scene replaces the old clip
       const { error: uploadError } = await supabase.storage
-        .from('video-clips')
+        .from('splice-clips')
         .upload(clipFileName, Buffer.from(base64, 'base64'), {
           contentType: 'video/mp4',
           upsert: true,
@@ -224,7 +224,7 @@ export default function RecordingScreen() {
       if (uploadError) throw uploadError
 
       const { data: urlData } = supabase.storage
-        .from('video-clips')
+        .from('splice-clips')
         .getPublicUrl(clipFileName)
       const clipUrl = urlData.publicUrl
 
