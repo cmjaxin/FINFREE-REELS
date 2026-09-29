@@ -30,15 +30,13 @@ export async function POST(request: NextRequest) {
 
     const clip_urls = clips.map((c: any) => c.clip_url)
 
-    // Create the render job
     const { data: job, error: jobErr } = await supabase
       .from('render_jobs')
-      .insert({ video_id, clip_urls, status: 'pending' })
-      .select('id, status, created_at')
+      .insert({ video_id, clip_urls, bot_status: 'pending' })
+      .select('id, bot_status, created_at')
       .single()
 
     if (jobErr) throw jobErr
-
     return NextResponse.json(job)
   } catch (error: any) {
     console.error('Error creating render job:', error)
@@ -55,13 +53,13 @@ export async function GET(request: NextRequest) {
     const supabase = getSupabase()
     const { data, error } = await supabase
       .from('render_jobs')
-      .select('id, status, output_url, error_message, created_at, updated_at')
+      .select('id, bot_status, output_url, error_message, created_at, updated_at')
       .eq('video_id', video_id)
       .order('created_at', { ascending: false })
       .limit(1)
       .single()
 
-    if (error && error.code !== 'PGRST116') throw error // PGRST116 = no rows
+    if (error && error.code !== 'PGRST116') throw error
     return NextResponse.json(data ?? null)
   } catch (error: any) {
     console.error('Error fetching render job:', error)

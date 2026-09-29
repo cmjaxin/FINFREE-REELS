@@ -17,7 +17,7 @@ interface Video {
 
 interface RenderJob {
   id: string
-  status: 'pending' | 'processing' | 'done' | 'failed'
+  bot_status: 'pending' | 'processing' | 'done' | 'failed'
   output_url: string | null
   error_message: string | null
   created_at: string
@@ -39,7 +39,7 @@ function SendToEditorButton({ video }: { video: Video }) {
 
   // Subscribe to Realtime updates when a job exists and isn't done/failed
   useEffect(() => {
-    if (!job || job.status === 'done' || job.status === 'failed') return
+    if (!job || job.bot_status === 'done' || job.bot_status === 'failed') return
     if (!supabase) return
 
     const channel = supabase
@@ -56,7 +56,7 @@ function SendToEditorButton({ video }: { video: Video }) {
 
     subRef.current = channel
     return () => { supabase?.removeChannel(channel) }
-  }, [job?.id, job?.status])
+  }, [job?.id, job?.bot_status])
 
   async function sendToEditor() {
     setSubmitting(true)
@@ -79,7 +79,7 @@ function SendToEditorButton({ video }: { video: Video }) {
   if (loading) return null
 
   // Job done — show finished video link
-  if (job?.status === 'done' && job.output_url) {
+  if (job?.bot_status === 'done' && job.output_url) {
     return (
       <a
         href={job.output_url}
@@ -92,7 +92,7 @@ function SendToEditorButton({ video }: { video: Video }) {
   }
 
   // Job failed
-  if (job?.status === 'failed') {
+  if (job?.bot_status === 'failed') {
     return (
       <div className="mt-3">
         <p className="text-xs text-red-400 mb-2">{job.error_message || 'Edit failed'}</p>
@@ -108,11 +108,11 @@ function SendToEditorButton({ video }: { video: Video }) {
   }
 
   // Job in progress
-  if (job?.status === 'pending' || job?.status === 'processing') {
+  if (job?.bot_status === 'pending' || job?.bot_status === 'processing') {
     return (
       <div className="mt-3 w-full px-3 py-2 bg-yellow-500/10 border border-yellow-500/30 rounded text-yellow-400 font-mono text-xs text-center">
         <span className="inline-block animate-pulse mr-1">●</span>
-        {job.status === 'pending' ? 'Waiting for Video Editor…' : 'Editing in progress…'}
+        {job.bot_status === 'pending' ? 'Waiting for Video Editor…' : 'Editing in progress…'}
       </div>
     )
   }
