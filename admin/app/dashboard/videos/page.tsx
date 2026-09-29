@@ -1,6 +1,7 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
+import { supabase } from '@/lib/supabase/client'
 
 interface Video {
   id: string
@@ -12,6 +13,120 @@ interface Video {
   created_at: string
   completed_at: string
   render_job_id: string
+}
+
+interface RenderJob {
+  id: string
+  status: 'pending' | 'processing' | 'done' | 'failed'
+  output_url: string | null
+  error_message: string | null
+  created_at: string
+}
+
+function SendToEditorButton({ video }: { video: Video }) {
+  const [job, setJob] = useState<RenderJob | null>(null)
+  const [loading, setLoading] = useState(true)
+  const [submitting, setSubmitting] = useState(false)
+  const subRef = useRef<ReturnType<typeof supabase.channel> | null>(null)
+
+  // Load existing job on mount
+  useEffect(() => {
+    fetch(`/api/render-jobs?video_id=${video.id}`)
+      .then(r => r.json())
+      .then(data => { setJob(data ?? null); setLoading(false) })
+      .catch(() => setLoading(false))
+  }, [video.id])
+
+  // Subscribe to Realtime updates when a job exists and isn't done/failed
+  useEffect(() => {
+    if (!job || job.status === 'done' || job.status === 'failed') return
+    if (!supabase) return
+
+    const channel = supabase
+      .channel(`render_job_${job.id}`)
+      .on('postgres_changes', {
+        event: 'UPDATE',
+        schema: 'public',
+        table: 'render_jobs',
+        filter: `id=eq.${job.id}`,
+      }, payload => {
+        setJob(prev => prev ? { ...prev, ...(payload.new as Partial<RenderJob>) } : prev)
+      })
+      .subscribe()
+
+    subRef.current = channel
+    return () => { supabase?.removeChannel(channel) }
+  }, [job?.id, job?.status])
+
+  async function sendToEditor() {
+    setSubmitting(true)
+    try {
+      const res = await fetch('/api/render-jobs', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ video_id: video.id }),
+      })
+      const data = await res.json()
+      if (!res.ok) throw new Error(data.error || 'Failed')
+      setJob(data)
+    } catch (err: any) {
+      alert(err.message)
+    } finally {
+      setSubmitting(false)
+    }
+  }
+
+  if (loading) return null
+
+  // Job done — show finished video link
+  if (job?.status === 'done' && job.output_url) {
+    return (
+      <a
+        href={job.output_url}
+        download
+        className="block mt-3 w-full px-3 py-2 bg-green-600 text-white rounded font-medium text-sm text-center hover:bg-green-500 transition"
+      >
+        ⬇ Download Edited Video
+      </a>
+    )
+  }
+
+  // Job failed
+  if (job?.status === 'failed') {
+    return (
+      <div className="mt-3">
+        <p className="text-xs text-red-400 mb-2">{job.error_message || 'Edit failed'}</p>
+        <button
+          onClick={sendToEditor}
+          disabled={submitting}
+          className="w-full px-3 py-2 bg-gray-700 text-gray-200 rounded font-medium text-sm hover:bg-gray-600 transition disabled:opacity-50"
+        >
+          Retry
+        </button>
+      </div>
+    )
+  }
+
+  // Job in progress
+  if (job?.status === 'pending' || job?.status === 'processing') {
+    return (
+      <div className="mt-3 w-full px-3 py-2 bg-yellow-500/10 border border-yellow-500/30 rounded text-yellow-400 font-mono text-xs text-center">
+        <span className="inline-block animate-pulse mr-1">●</span>
+        {job.status === 'pending' ? 'Waiting for Video Editor…' : 'Editing in progress…'}
+      </div>
+    )
+  }
+
+  // No job yet — show button
+  return (
+    <button
+      onClick={sendToEditor}
+      disabled={submitting}
+      className="block mt-3 w-full px-3 py-2 bg-primary text-black rounded font-bold text-sm text-center hover:bg-primary-dark transition disabled:opacity-50"
+    >
+      {submitting ? 'Sending…' : '✂ Send to Video Editor'}
+    </button>
+  )
 }
 
 export default function VideosPage() {
@@ -26,9 +141,7 @@ export default function VideosPage() {
   const fetchVideos = async () => {
     try {
       const url = new URL('/api/videos', window.location.origin)
-      if (filter !== 'all') {
-        url.searchParams.set('status', filter)
-      }
+      if (filter !== 'all') url.searchParams.set('status', filter)
       const res = await fetch(url.toString())
       const data = await res.json()
       setVideos(Array.isArray(data) ? data : [])
@@ -41,14 +154,10 @@ export default function VideosPage() {
 
   const getStatusBadgeColor = (status: string) => {
     switch (status) {
-      case 'ready':
-        return 'bg-green-500/20 text-green-400'
-      case 'rendering':
-        return 'bg-yellow-500/20 text-yellow-400'
-      case 'error':
-        return 'bg-red-500/20 text-red-400'
-      default:
-        return 'bg-gray-500/20 text-gray-400'
+      case 'ready': return 'bg-green-500/20 text-green-400'
+      case 'rendering': return 'bg-yellow-500/20 text-yellow-400'
+      case 'error': return 'bg-red-500/20 text-red-400'
+      default: return 'bg-gray-500/20 text-gray-400'
     }
   }
 
@@ -63,7 +172,6 @@ export default function VideosPage() {
       <div className="mb-8">
         <p className="font-mono text-gray-400 mb-2">RENDERED OUTPUT</p>
         <h2 className="text-page-title text-text-light mb-4">Videos</h2>
-
         <div className="flex gap-2 flex-wrap">
           {['all', 'ready', 'rendering', 'awaiting_scenes', 'error'].map((f) => (
             <button
@@ -130,6 +238,8 @@ export default function VideosPage() {
                     Download
                   </a>
                 )}
+
+                <SendToEditorButton video={video} />
               </div>
             </div>
           ))
